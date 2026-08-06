@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.storysliver.mapper.FragmentLikeMapper">
+    <!-- 删除点赞：userId 传 null 时清理该碎片全部点赞（配合硬删除） -->
+    <delete id="deleteByFragmentAndUser">
+        delete from fragment_like
+        where fragment_id = #{fragmentId}
+        <if test="userId != null">
+            and user_id = #{userId}
+        </if>
+    </delete>
+</mapper>

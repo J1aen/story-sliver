@@ -1,0 +1,22 @@
+# Java
+**/target/
+*.class
+
+# Node
+**/node_modules/
+**/dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+
+# 本地临时与工具数据
+.superpowers/
