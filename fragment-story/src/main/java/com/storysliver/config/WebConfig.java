@@ -1,16 +1,36 @@
 package com.storysliver.config;
 
+import com.storysliver.auth.AuthInterceptor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Web 配置：目前只保留跨域（CORS）。
- * 旧的管理员内存 token 拦截器已随旧代码清理删除；新的 JWT 认证拦截器在实现计划 Task 3 中再注册。
+ * Web 配置：拦截器注册 + 跨域。
+ * 为什么排除 /api/auth/* 和 GET /api/fragments：验证码/注册/登录是公开接口；
+ * 首页列表游客可见，登录用户在 Controller 里「可选解析」token（见 Task 7 FragmentController）。
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    @Autowired
+    private AuthInterceptor authInterceptor;
+
+    /** 注册 JWT 拦截器：/api/** 都拦截，公开接口排除 */
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(authInterceptor)
+                .addPathPatterns("/api/**")
+                .excludePathPatterns(
+                        "/api/auth/captcha",//验证码：注册前必须先拿
+                        "/api/auth/register",//注册：还没有账号
+                        "/api/auth/login",//登录：还没有 token
+                        "/api/fragments");//首页列表：游客可看
+    }
+
+    /** 开发阶段前后端分端口运行，允许任意来源；上线后同端口托管，此配置不再生效 */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
