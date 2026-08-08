@@ -15,7 +15,22 @@ public enum ResultCode {
     UNAUTHORIZED(401, "未认证或登录已过期"),
     FORBIDDEN(403, "没有权限"),
     NOT_FOUND(404, "资源不存在"),
-    INTERNAL_ERROR(500, "服务器内部错误");
+    INTERNAL_ERROR(500, "服务器内部错误"),
+
+    // 以下为 Task 5 起新增的业务错误码
+    CAPTCHA_ERROR(400, "验证码错误"),
+    REGISTER_TOO_FREQUENT(429, "注册过于频繁，请稍后再试"),
+    USERNAME_TAKEN(400, "用户名已存在"),
+    PASSWORD_TOO_WEAK(400, "密码至少 6 位"),
+    ADMIN_CODE_WRONG(400, "管理员注册密码错误"),
+    LOGIN_FAILED(401, "用户名或密码错误"),
+    FRAGMENT_TOO_FREQUENT(429, "发布太频繁，5 分钟后再试"),
+    FRAGMENT_TOO_LONG(400, "内容不能超过 1000 字"),
+    ALREADY_LIKED(400, "已经点过赞了"),
+    NOT_LIKED(400, "还没有点赞"),
+    FRAGMENT_NOT_PUBLISHED(400, "碎片不存在或不可操作"),
+    NOT_AUTHOR(403, "只能操作自己的碎片"),
+    CANNOT_MODIFY_OWNER(400, "不能修改站长");
 
     private final int code;
     private final String message;
