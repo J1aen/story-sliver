@@ -183,7 +183,12 @@ onMounted(() => loadFragments(0))
         <div class="actions">
           <button v-if="f.status === 0" class="btn small primary" @click="onApprove(f)">通过</button>
           <button class="btn small danger" @click="confirmTarget = { id: f.id }">删除</button>
-          <button class="btn small danger" @click="openBan({ type: 'fragment', id: f.id, userId: f.userId, name: f.authorName })">删除并封禁</button>
+          <!-- 管理员不能封禁管理员：仅站长可对管理员碎片执行删除并封禁 -->
+          <button
+            v-if="!(userStore.user?.role === 1 && f.authorRole === 1)"
+            class="btn small danger"
+            @click="openBan({ type: 'fragment', id: f.id, userId: f.userId, name: f.authorName })"
+          >删除并封禁</button>
         </div>
       </article>
     </template>

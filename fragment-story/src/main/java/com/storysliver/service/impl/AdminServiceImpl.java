@@ -223,7 +223,11 @@ public class AdminServiceImpl implements AdminService {
             throw new BusinessException(ResultCode.NOT_FOUND, "用户不存在");
         }
         if (target.getRole() == User.ROLE_OWNER) {
-            throw new BusinessException(ResultCode.CANNOT_MODIFY_OWNER);
+            throw new BusinessException(ResultCode.BAD_REQUEST, "站长不能被封禁");
+        }
+        // 管理员不能封禁管理员：只有站长能封禁管理员
+        if (operatorRole == User.ROLE_ADMIN && target.getRole() == User.ROLE_ADMIN) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "管理员不能封禁管理员，仅站长可封禁管理员");
         }
         if (isBanned(target)) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "该账号已被封禁");
