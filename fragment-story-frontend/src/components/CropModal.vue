@@ -4,80 +4,96 @@ import { onMounted, ref } from 'vue'
 defineProps({ show: Boolean, imageUrl: String })
 const emit = defineEmits(['cropped', 'cancel'])
 
-const viewport = 220// 圆形裁剪框显示尺寸
-const scale = ref(1)
-const offset = ref({ x: 0, y: 0 })
-const imgSize = ref({ w: 0, h: 0 })
+const stage = 280// 裁剪舞台边长（正方形）
+const circle = ref({ cx: stage / 2, cy: stage / 2, r: 64 })
 const imgEl = ref(null)
-const dragging = ref(false)
-const start = ref({ x: 0, y: 0 })
+const natural = ref({ w: 0, h: 0 })
+const mode = ref('')// '' 无操作 / 'move' 拖动圆 / 'resize' 拖角调整大小
+const drag = ref({ px: 0, py: 0, start: null })
 
-// 图片加载完成后计算初始尺寸：按比例适配裁剪框并居中
 function initCrop() {
-  const iw = imgEl.value.naturalWidth
-  const ih = imgEl.value.naturalHeight
-  const fit = Math.min(viewport / iw, viewport / ih)
-  imgSize.value = { w: iw * fit, h: ih * fit }
-  offset.value = { x: (viewport - imgSize.value.w) / 2, y: (viewport - imgSize.value.h) / 2 }
-  scale.value = 1
+  natural.value = { w: imgEl.value.naturalWidth, h: imgEl.value.naturalHeight }
+  circle.value = { cx: stage / 2, cy: stage / 2, r: 64 }
 }
 
-// 拖动时保证图片始终盖住圆形区域（不露出空白）
-function clampOffset() {
-  const w = imgSize.value.w * scale.value
-  const h = imgSize.value.h * scale.value
-  const maxX = Math.max(0, (w - viewport) / 2)
-  const maxY = Math.max(0, (h - viewport) / 2)
-  offset.value.x = Math.min(Math.max(offset.value.x, -maxX), maxX)
-  offset.value.y = Math.min(Math.max(offset.value.y, -maxY), maxY)
+// 指针相对舞台的坐标
+function pos(e) {
+  const rect = e.currentTarget.getBoundingClientRect()
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top }
+}
+
+function clamp(v, min, max) {
+  return Math.min(Math.max(v, min), max)
 }
 
 function onPointerDown(e) {
-  dragging.value = true
-  start.value = { x: e.clientX - offset.value.x, y: e.clientY - offset.value.y }
+  const p = pos(e)
+  const isHandle = e.target && e.target.classList.contains('crop-handle')
+  if (isHandle) {
+    mode.value = 'resize'
+  } else {
+    const dx = p.x - circle.value.cx
+    const dy = p.y - circle.value.cy
+    if (dx * dx + dy * dy <= circle.value.r * circle.value.r) {
+      mode.value = 'move'
+    } else {
+      return// 点在圆外，不响应
+    }
+  }
+  drag.value = { px: p.x, py: p.y, start: { ...circle.value } }
 }
+
 function onPointerMove(e) {
-  if (!dragging.value) return
-  offset.value.x = e.clientX - start.value.x
-  offset.value.y = e.clientY - start.value.y
-  clampOffset()
+  if (!mode.value) return
+  const p = pos(e)
+  if (mode.value === 'move') {
+    const dx = p.x - drag.value.px
+    const dy = p.y - drag.value.py
+    circle.value.cx = clamp(drag.value.start.cx + dx, circle.value.r, stage - circle.value.r)
+    circle.value.cy = clamp(drag.value.start.cy + dy, circle.value.r, stage - circle.value.r)
+  } else if (mode.value === 'resize') {
+    // 半径 = 圆心到指针的距离，直观地「拖多大多大」
+    const dist = Math.hypot(p.x - circle.value.cx, p.y - circle.value.cy)
+    circle.value.r = clamp(dist, 36, stage / 2 - 6)
+    // 保证圆心仍在舞台内
+    circle.value.cx = clamp(circle.value.cx, circle.value.r, stage - circle.value.r)
+    circle.value.cy = clamp(circle.value.cy, circle.value.r, stage - circle.value.r)
+  }
 }
+
 function onPointerUp() {
-  dragging.value = false
+  mode.value = ''
 }
 
-function zoom(delta) {
-  scale.value = Math.min(Math.max(scale.value + delta, 1), 3)
-  clampOffset()
-}
-
-// 按当前显示位置裁成圆形并导出 PNG Blob（背景透明）
+// 按当前圆形区域裁切：先按 cover 方式把图铺满舞台，再裁圆形导出透明 PNG
 function confirm() {
-  const out = 256
+  const out = 512
   const canvas = document.createElement('canvas')
   canvas.width = out
   canvas.height = out
   const ctx = canvas.getContext('2d')
-  const k = out / viewport
+  const k = out / stage
+  // 计算 object-fit: cover 的源图裁剪区域
+  const iw = natural.value.w
+  const ih = natural.value.h
+  const scale = Math.max(iw / stage, ih / stage)
+  const sw = stage * scale
+  const sh = stage * scale
+  const sx = (iw - sw) / 2
+  const sy = (ih - sh) / 2
+  ctx.drawImage(imgEl.value, sx, sy, sw, sh, 0, 0, out, out)
+  // 圆形裁剪（透明背景）
+  ctx.globalCompositeOperation = 'destination-in'
   ctx.beginPath()
-  ctx.arc(out / 2, out / 2, out / 2, 0, Math.PI * 2)
-  ctx.clip()
-  ctx.drawImage(
-    imgEl.value,
-    offset.value.x * k,
-    offset.value.y * k,
-    imgSize.value.w * scale.value * k,
-    imgSize.value.h * scale.value * k
-  )
+  ctx.arc(circle.value.cx * k, circle.value.cy * k, circle.value.r * k, 0, Math.PI * 2)
+  ctx.fill()
   canvas.toBlob((blob) => {
     if (blob) emit('cropped', blob)
   }, 'image/png')
 }
 
-// 每次打开弹窗重置
 onMounted(() => {
-  scale.value = 1
-  offset.value = { x: 0, y: 0 }
+  circle.value = { cx: stage / 2, cy: stage / 2, r: 64 }
 })
 </script>
 
@@ -85,28 +101,26 @@ onMounted(() => {
   <div v-if="show" class="modal-mask" @click.self="emit('cancel')">
     <div class="modal">
       <h3>裁剪头像</h3>
-      <p class="subtitle">拖动图片调整位置，按钮缩放；圆形区域就是头像</p>
-      <div class="crop-stage">
-        <img
-          ref="imgEl"
-          :src="imageUrl"
-          class="crop-img"
-          draggable="false"
+      <p class="subtitle">拖动圆形移动位置，拖右下角圆点调整大小</p>
+      <div
+        class="crop-stage2"
+        @pointerdown="onPointerDown"
+        @pointermove="onPointerMove"
+        @pointerup="onPointerUp"
+        @pointerleave="onPointerUp"
+      >
+        <img ref="imgEl" :src="imageUrl" class="crop-img2" draggable="false" @load="initCrop" alt="待裁剪图片" />
+        <div
+          class="crop-circle"
           :style="{
-            width: imgSize.w * scale + 'px',
-            height: imgSize.h * scale + 'px',
-            transform: 'translate(' + offset.x + 'px,' + offset.y + 'px)'
+            left: circle.cx - circle.r + 'px',
+            top: circle.cy - circle.r + 'px',
+            width: circle.r * 2 + 'px',
+            height: circle.r * 2 + 'px'
           }"
-          @load="initCrop"
-          @pointerdown="onPointerDown"
-          @pointermove="onPointerMove"
-          @pointerup="onPointerUp"
-          @pointerleave="onPointerUp"
-        />
-      </div>
-      <div class="crop-controls">
-        <button class="btn small" @click="zoom(-0.25)">缩小</button>
-        <button class="btn small" @click="zoom(0.25)">放大</button>
+        >
+          <span class="crop-handle" aria-hidden="true"></span>
+        </div>
       </div>
       <div class="modal-actions">
         <button class="btn" @click="emit('cancel')">取消</button>
