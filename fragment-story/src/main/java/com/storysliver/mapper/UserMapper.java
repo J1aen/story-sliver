@@ -42,6 +42,12 @@ public interface UserMapper {
     @Select("select count(*) from `user`")
     long countAll();
 
+    /** 管理员及以上（role >= 1）的人数：判断「第一个管理员 = 站长」。
+     * 为什么不用 countAll：普通用户先注册不影响站长位，
+     * 否则「第一个用户恰好是普通用户」会导致站长位永远空着。 */
+    @Select("select count(*) from `user` where role >= 1")
+    long countAdmin();
+
     /** 修改角色：站长指定/撤销管理员时使用 */
     @Update("update `user` set role = #{role} where id = #{id}")
     int updateRole(@Param("id") Long id, @Param("role") Integer role);

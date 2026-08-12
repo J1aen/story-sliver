@@ -80,7 +80,9 @@ public class UserServiceImpl implements UserService {
                 throw new BusinessException(ResultCode.ADMIN_CODE_WRONG);
             }
             // 第一个用特殊密码注册的管理员自动成为站长；之后用同一密码注册的只是普通管理员
-            role = userMapper.countAll() == 0 ? User.ROLE_OWNER : User.ROLE_ADMIN;
+            // 为什么统计 countAdmin 而不是 countAll：普通用户先注册不影响站长位，
+            // 否则「第一个用户恰好是普通用户」会导致站长位永远锁死
+            role = userMapper.countAdmin() == 0 ? User.ROLE_OWNER : User.ROLE_ADMIN;
         }
 
         // 动作6：组装用户并加密密码。数据库里永远只存 BCrypt 哈希，不存明文

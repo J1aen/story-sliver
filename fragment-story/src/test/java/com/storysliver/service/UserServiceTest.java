@@ -152,13 +152,33 @@ class UserServiceTest {
         config.setConfigKey(SystemConfig.KEY_ADMIN_REGISTER_CODE);
         config.setConfigValue(passwordEncoder.encode("SecretCode1"));
         when(systemConfigMapper.selectByKey(SystemConfig.KEY_ADMIN_REGISTER_CODE)).thenReturn(config);
-        when(userMapper.countAll()).thenReturn(0L);
+        when(userMapper.countAdmin()).thenReturn(0L);
 
         service.register(request("admin1", "123456", true, "SecretCode1"), "1.2.3.4");
 
         org.mockito.ArgumentCaptor<User> captor = org.mockito.ArgumentCaptor.forClass(User.class);
         verify(userMapper).insert(captor.capture());
         assertEquals(2, captor.getValue().getRole(), "第一个管理员应为站长（角色 2）");
+    }
+
+    /** 回归测试：先注册过普通用户，第一个管理员依然成为站长（修复站长位锁死 bug） */
+    @Test
+    void firstAdminStillBecomesOwnerWhenNormalUsersExist() {
+        when(captchaService.verify("k", "8")).thenReturn(true);
+        when(registerRateLimiter.isAllowed("1.2.3.4")).thenReturn(true);
+        when(userMapper.selectByUsername("admin1")).thenReturn(null);
+        SystemConfig config = new SystemConfig();
+        config.setConfigKey(SystemConfig.KEY_ADMIN_REGISTER_CODE);
+        config.setConfigValue(passwordEncoder.encode("SecretCode1"));
+        when(systemConfigMapper.selectByKey(SystemConfig.KEY_ADMIN_REGISTER_CODE)).thenReturn(config);
+        // 已存在普通用户，但管理员数量为 0 → 第一个管理员仍应是站长
+        when(userMapper.countAdmin()).thenReturn(0L);
+
+        service.register(request("admin1", "123456", true, "SecretCode1"), "1.2.3.4");
+
+        org.mockito.ArgumentCaptor<User> captor = org.mockito.ArgumentCaptor.forClass(User.class);
+        verify(userMapper).insert(captor.capture());
+        assertEquals(2, captor.getValue().getRole(), "普通用户先注册不应影响第一个管理员成为站长");
     }
 
     /** 管理员特殊密码错误 → 抛 ADMIN_CODE_WRONG */
