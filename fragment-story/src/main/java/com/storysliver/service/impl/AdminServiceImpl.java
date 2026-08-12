@@ -15,10 +15,13 @@ import com.storysliver.pojo.SystemConfig;
 import com.storysliver.pojo.User;
 import com.storysliver.service.AdminService;
 import com.storysliver.service.FragmentService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -26,6 +29,7 @@ import java.util.List;
  * 所有方法都先校验操作者角色（纵深防御，配合 Controller 的 @RequireRole），再由 Mapper 执行。
  */
 @Service
+@Slf4j
 public class AdminServiceImpl implements AdminService {
 
     @Autowired
@@ -45,6 +49,10 @@ public class AdminServiceImpl implements AdminService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;//BCrypt 加密器：新密码加密后落库
+
+    /** 头像保存目录：来自 application.properties（当前 D:/HeadImage） */
+    @Value("${app.upload.avatar-dir}")
+    private String avatarDir;
 
     /**
      * 管理列表：按状态筛选（0 待审核 / 1 已发布 / null 全部）。
@@ -158,16 +166,35 @@ public class AdminServiceImpl implements AdminService {
         userMapper.approveAvatar(userId);
     }
 
-    /** 头像审核拒绝：清空待审核头像（保留旧头像），并记录原因（空则用默认文案） */
+    /**
+     * 头像审核拒绝：清空待审核头像（保留旧头像），记录原因，并删除本地待审核图片文件。
+     * 为什么删文件：被拒绝的图片不会再展示，不删会一直堆在 D:/HeadImage 里。
+     */
     @Override
     public void rejectAvatar(Long userId, String reason) {
-        requirePendingAvatar(userId);
+        User u = requirePendingAvatar(userId);
         String text = (reason == null || reason.isBlank()) ? "头像不符合要求" : reason.trim();
         userMapper.rejectAvatar(userId, text);
+        deleteAvatarFile(u.getAvatarPending());
     }
 
-    /** 校验用户存在且有「待审核头像」 */
-    private void requirePendingAvatar(Long userId) {
+    /**
+     * 删除本地头像文件：/uploads/xxx.png → D:/HeadImage/xxx.png。
+     * 文件不存在或删除失败都不影响主流程（数据库记录已经清掉）。
+     */
+    private void deleteAvatarFile(String url) {
+        if (url == null || !url.startsWith("/uploads/")) {
+            return;
+        }
+        String fileName = url.substring("/uploads/".length());
+        File file = new File(avatarDir, fileName);
+        if (file.exists() && !file.delete()) {
+            log.warn("删除头像文件失败: {}", file.getAbsolutePath());
+        }
+    }
+
+    /** 校验用户存在且有「待审核头像」，返回用户（调用方需要拿 avatarPending 删文件） */
+    private User requirePendingAvatar(Long userId) {
         User u = userMapper.selectById(userId);
         if (u == null) {
             throw new BusinessException(ResultCode.NOT_FOUND, "用户不存在");
@@ -175,6 +202,7 @@ public class AdminServiceImpl implements AdminService {
         if (u.getAvatarPending() == null) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "该用户没有待审核头像");
         }
+        return u;
     }
 
     /** 校验碎片存在：审核 / 删除的前置条件 */
