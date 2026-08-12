@@ -205,6 +205,44 @@ public class AdminServiceImpl implements AdminService {
         return u;
     }
 
+    /**
+     * 封禁账号：管理员及以上可操作；站长不可被封禁（系统永远有站长）。
+     * 为什么封禁用 status 而不是删号：封禁可解封（站长），删号不可逆。
+     */
+    @Override
+    public void banUser(Integer operatorRole, Long userId) {
+        if (operatorRole == null || (operatorRole != User.ROLE_ADMIN && operatorRole != User.ROLE_OWNER)) {
+            throw new BusinessException(ResultCode.FORBIDDEN);
+        }
+        User target = userMapper.selectById(userId);
+        if (target == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "用户不存在");
+        }
+        if (target.getRole() == User.ROLE_OWNER) {
+            throw new BusinessException(ResultCode.CANNOT_MODIFY_OWNER);
+        }
+        if (target.getStatus() != null && target.getStatus() == User.STATUS_BANNED) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "该账号已被封禁");
+        }
+        userMapper.updateStatus(userId, User.STATUS_BANNED);
+    }
+
+    /** 解除封禁：仅站长能操作（普通管理员无权解封，防止互解封） */
+    @Override
+    public void unbanUser(Integer operatorRole, Long userId) {
+        if (operatorRole == null || operatorRole != User.ROLE_OWNER) {
+            throw new BusinessException(ResultCode.FORBIDDEN);
+        }
+        User target = userMapper.selectById(userId);
+        if (target == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "用户不存在");
+        }
+        if (target.getStatus() == null || target.getStatus() != User.STATUS_BANNED) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "该账号未被封禁");
+        }
+        userMapper.updateStatus(userId, User.STATUS_NORMAL);
+    }
+
     /** 校验碎片存在：审核 / 删除的前置条件 */
     private StoryFragment requireExists(Long fragmentId) {
         StoryFragment f = fragmentMapper.selectById(fragmentId);
@@ -223,6 +261,7 @@ public class AdminServiceImpl implements AdminService {
         FragmentVO vo = fragmentService.toVO(f, false);
         User author = userMapper.selectById(f.getUserId());
         vo.setAuthorName(author == null ? "未知用户" : author.getNickname());
+        vo.setUserId(f.getUserId());//管理端需要发布者 id 才能封禁账号
         return vo;
     }
 }

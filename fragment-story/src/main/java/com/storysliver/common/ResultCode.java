@@ -24,6 +24,7 @@ public enum ResultCode {
     PASSWORD_TOO_WEAK(400, "密码至少 6 位"),
     ADMIN_CODE_WRONG(400, "管理员注册密码错误"),
     LOGIN_FAILED(401, "用户名或密码错误"),
+    ACCOUNT_BANNED(403, "账号已被封禁，请联系站长"),
     FRAGMENT_TOO_FREQUENT(429, "发布太频繁，5 分钟后再试"),
     FRAGMENT_TOO_LONG(400, "内容不能超过 1000 字"),
     ALREADY_LIKED(400, "已经点过赞了"),

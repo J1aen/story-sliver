@@ -1,6 +1,8 @@
 package com.storysliver.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.storysliver.mapper.UserMapper;
+import com.storysliver.pojo.User;
 import com.storysliver.pojo.Result;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,6 +21,9 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class AuthInterceptor implements HandlerInterceptor {
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private UserMapper userMapper;//校验账号是否被封禁
 
     /** 序列化 Result 用；一次创建、处处复用（线程安全） */
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -58,6 +63,14 @@ public class AuthInterceptor implements HandlerInterceptor {
         Long userId = Long.valueOf(claims.getSubject());
         Integer role = claims.get("role", Integer.class);
         UserContext.set(userId, role);
+
+        // 封禁账号：即使持有旧 token 也拒绝所有登录态请求（防封禁后继续使用）
+        User user = userMapper.selectById(userId);
+        if (user != null && user.getStatus() == User.STATUS_BANNED) {
+            UserContext.clear();
+            writeJson(response, 403, Result.error(403, "账号已被封禁，请联系站长"));
+            return false;
+        }
 
         // 方法上标了 @RequireRole 才做角色校验；没标表示登录即可
         if (handler instanceof HandlerMethod handlerMethod) {

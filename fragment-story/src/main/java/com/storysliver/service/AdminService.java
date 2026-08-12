@@ -36,4 +36,10 @@ public interface AdminService {
 
     /** 头像审核拒绝：清空待审核头像（保留旧头像），记录拒绝原因 */
     void rejectAvatar(Long userId, String reason);
+
+    /** 封禁账号（管理员及以上；站长不可被封禁） */
+    void banUser(Integer operatorRole, Long userId);
+
+    /** 解除封禁（仅站长） */
+    void unbanUser(Integer operatorRole, Long userId);
 }

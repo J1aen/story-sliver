@@ -107,4 +107,20 @@ public class AdminController {
         adminService.rejectAvatar(userId, request == null ? null : request.getReason());
         return Result.success();
     }
+
+    /** 封禁账号（管理员及以上；管理员审核时发现违规可「删除并封禁」） */
+    @PostMapping("/users/{id}/ban")
+    @RequireRole({User.ROLE_ADMIN, User.ROLE_OWNER})
+    public Result banUser(@PathVariable Long id) {
+        adminService.banUser(UserContext.getRole(), id);
+        return Result.success();
+    }
+
+    /** 解除封禁（仅站长） */
+    @PostMapping("/users/{id}/unban")
+    @RequireRole(User.ROLE_OWNER)
+    public Result unbanUser(@PathVariable Long id) {
+        adminService.unbanUser(UserContext.getRole(), id);
+        return Result.success();
+    }
 }

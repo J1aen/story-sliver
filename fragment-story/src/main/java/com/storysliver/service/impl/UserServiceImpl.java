@@ -130,6 +130,10 @@ public class UserServiceImpl implements UserService {
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
             throw new BusinessException(ResultCode.LOGIN_FAILED);
         }
+        // 封禁账号禁止登录，并给出明确提示
+        if (user.getStatus() != null && user.getStatus() == User.STATUS_BANNED) {
+            throw new BusinessException(ResultCode.ACCOUNT_BANNED);
+        }
         return jwtUtil.generateToken(user.getId(), user.getRole());
     }
 

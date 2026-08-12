@@ -52,6 +52,10 @@ public interface UserMapper {
     @Update("update `user` set role = #{role} where id = #{id}")
     int updateRole(@Param("id") Long id, @Param("role") Integer role);
 
+    /** 更新用户状态：0 正常 / 1 封禁（管理员封禁、站长解封） */
+    @Update("update `user` set status = #{status} where id = #{id}")
+    int updateStatus(@Param("id") Long id, @Param("status") Integer status);
+
     /** 设置待审核头像（用户上传头像后调用；同时清掉上次的拒绝原因） */
     @Update("update `user` set avatar_pending = #{avatarPending}, avatar_reject_reason = null where id = #{id}")
     int updateAvatarPending(@Param("id") Long id, @Param("avatarPending") String avatarPending);

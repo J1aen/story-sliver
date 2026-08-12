@@ -8,6 +8,8 @@ import {
   getPendingAvatars,
   getUsers,
   rejectAvatar,
+  banUser,
+  unbanUser,
   updateAdminCode,
   updateUserRole
 } from '../api/admin'
@@ -74,11 +76,27 @@ async function onSaveCode() {
   catch (e) { message.value = e.message }
 }
 async function onConfirmDelete() {
+  const t = confirmTarget.value
   try {
-    await adminDeleteFragment(confirmTarget.value.id)
+    if (t.type === 'ban') {
+      await adminDeleteFragment(t.id)
+      await banUser(t.userId)
+      message.value = `已删除碎片并封禁 ${t.name || '该用户'}`
+    } else {
+      await adminDeleteFragment(t.id)
+    }
     confirmTarget.value = null
     await loadFragments(tab.value === 'review' ? 0 : 1)
   } catch (e) { message.value = e.message }
+}
+
+async function onBanUser(u) {
+  try { await banUser(u.id); message.value = `已封禁 ${u.nickname || u.username}`; await loadUsers() }
+  catch (e) { message.value = e.message }
+}
+async function onUnbanUser(u) {
+  try { await unbanUser(u.id); message.value = `已解封 ${u.nickname || u.username}`; await loadUsers() }
+  catch (e) { message.value = e.message }
 }
 
 function switchTab(t) {
@@ -118,6 +136,7 @@ onMounted(() => loadFragments(0))
         <div class="actions">
           <button v-if="f.status === 0" class="btn small primary" @click="onApprove(f)">通过</button>
           <button class="btn small danger" @click="confirmTarget = { id: f.id }">删除</button>
+          <button class="btn small danger" @click="confirmTarget = { type: 'ban', id: f.id, userId: f.userId, name: f.authorName }">删除并封禁</button>
         </div>
       </article>
     </template>
@@ -151,14 +170,17 @@ onMounted(() => loadFragments(0))
     <!-- 用户管理（仅站长） -->
     <template v-if="tab === 'users'">
       <table class="table">
-        <tr><th>ID</th><th>用户名</th><th>昵称</th><th>角色</th><th>操作</th></tr>
+        <tr><th>ID</th><th>用户名</th><th>昵称</th><th>角色</th><th>状态</th><th>操作</th></tr>
         <tr v-for="u in users" :key="u.id">
           <td>{{ u.id }}</td><td>{{ u.username }}</td><td>{{ u.nickname }}</td>
           <td>{{ u.role === 2 ? '站长' : u.role === 1 ? '管理员' : '普通' }}</td>
+          <td>{{ u.status === 1 ? '封禁中' : '正常' }}</td>
           <td>
             <button v-if="u.role === 0" class="btn small" @click="onRole(u, 1)">设为管理员</button>
             <button v-else-if="u.role === 1" class="btn small danger" @click="onRole(u, 0)">撤销管理员</button>
             <span v-else>—</span>
+            <button v-if="u.status === 1" class="btn small primary" @click="onUnbanUser(u)">解封</button>
+            <button v-else-if="u.role !== 2" class="btn small danger" @click="onBanUser(u)">封禁</button>
           </td>
         </tr>
       </table>
@@ -175,8 +197,9 @@ onMounted(() => loadFragments(0))
 
     <ConfirmDialog
       :show="!!confirmTarget"
-      title="删除碎片"
-      message="删除后无法撤回，确定删除吗？"
+      :title="confirmTarget?.type === 'ban' ? '删除并封禁' : '删除碎片'"
+      :message="confirmTarget?.type === 'ban' ? '将删除该碎片并封禁发布者账号，封禁后对方无法登录（仅站长可解封），确定吗？' : '删除后无法撤回，确定删除吗？'"
+      :confirm-text="confirmTarget?.type === 'ban' ? '确认封禁' : '确认删除'"
       @cancel="confirmTarget = null"
       @confirm="onConfirmDelete"
     />

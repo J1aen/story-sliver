@@ -1,5 +1,10 @@
 <script setup>
-defineProps({ show: Boolean, title: String, message: String })
+defineProps({
+  show: Boolean,
+  title: String,
+  message: String,
+  confirmText: { type: String, default: '确认删除' }
+})
 // 必须用 const emit 接收，模板里的 emit() 才能用（否则点击按钮报「emit 未定义」）
 const emit = defineEmits(['confirm', 'cancel'])
 </script>
@@ -11,7 +16,7 @@ const emit = defineEmits(['confirm', 'cancel'])
       <p class="danger-text">{{ message }}</p>
       <div class="modal-actions">
         <button class="btn" @click="emit('cancel')">取消</button>
-        <button class="btn danger" @click="emit('confirm')">确认删除</button>
+        <button class="btn danger" @click="emit('confirm')">{{ confirmText }}</button>
       </div>
     </div>
   </div>
