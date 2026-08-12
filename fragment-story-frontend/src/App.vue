@@ -1,5 +1,7 @@
 <script setup>
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getMe } from './api/auth'
 import { userStore } from './stores/user'
 
 const router = useRouter()
@@ -7,6 +9,18 @@ function logout() {
   userStore.logout()
   router.push('/login')
 }
+
+// 页面加载时同步最新用户信息（头像审核通过/角色变更后刷新即生效）
+onMounted(async () => {
+  if (userStore.token) {
+    try {
+      const me = await getMe()
+      userStore.setUser(me)
+    } catch (e) {
+      // token 失效：拦截器会处理跳登录
+    }
+  }
+})
 </script>
 
 <template>
