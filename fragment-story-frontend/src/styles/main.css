@@ -1,0 +1,113 @@
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: #f7f3ea;
+  color: #4a4238;
+  font-family: Georgia, "Songti SC", "SimSun", serif;
+  line-height: 1.7;
+  -webkit-text-size-adjust: 100%;
+}
+
+.app { max-width: 720px; margin: 0 auto; padding: 0 16px 64px; }
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 0;
+  border-bottom: 1px solid #e5dcc8;
+  margin-bottom: 24px;
+}
+.brand { font-size: 20px; letter-spacing: 2px; }
+.nav-links { display: flex; gap: 16px; align-items: center; }
+.nav-links a, .link {
+  color: #8a7a5c;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+.nav-links a.router-link-active { color: #4a4238; font-weight: bold; }
+
+h1 { font-size: 26px; }
+.subtitle { color: #a39476; font-size: 14px; margin: 0 0 18px; }
+
+/* 登录卡片 */
+.auth-page { display: flex; justify-content: center; padding-top: 28px; }
+.auth-card {
+  width: 380px;
+  max-width: 100%;
+  background: #fbf8f1;
+  border: 1px solid #eadfc8;
+  border-radius: 10px;
+  padding: 28px;
+  box-shadow: 0 2px 8px rgba(74, 66, 56, 0.06);
+}
+.tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+.tabs button {
+  flex: 1;
+  padding: 8px 0;
+  border: 1px solid #dccba7;
+  border-radius: 6px;
+  background: #f7f3ea;
+  color: #8a7a5c;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+}
+.tabs button.active { background: #4a4238; color: #f7f3ea; border-color: #4a4238; }
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dccba7;
+  border-radius: 6px;
+  background: #fffdf8;
+  font: inherit;
+  font-size: 16px; /* >=16px：防止 iOS 聚焦时自动放大页面 */
+  margin-bottom: 10px;
+}
+.checkbox { display: flex; align-items: center; gap: 6px; margin: 4px 0 10px; font-size: 14px; }
+.captcha-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.captcha-img { height: 42px; border-radius: 6px; cursor: pointer; }
+
+.btn {
+  width: 100%;
+  padding: 11px 0;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #eee4cf;
+  color: #4a4238;
+  font: inherit;
+  font-size: 15px;
+  letter-spacing: 4px;
+}
+.btn.primary { background: #4a4238; color: #f7f3ea; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.error { color: #a3483a; font-size: 13px; margin: 0 0 8px; }
+
+/* 骗你的大页面 */
+.coming-page {
+  text-align: center;
+  padding-top: 14vh;
+}
+.coming-title {
+  font-size: clamp(32px, 7vw, 56px);
+  letter-spacing: 4px;
+  margin: 0 0 16px;
+}
+.coming-sub { color: #a39476; font-size: 16px; margin: 0 0 10px; }
+.coming-user { color: #8a7a5c; font-size: 14px; margin: 0 0 24px; }
+
+/* 手机适配 */
+@media (max-width: 480px) {
+  .app { padding: 0 12px 48px; }
+  .auth-card { padding: 22px 18px; }
+  .brand { font-size: 18px; }
+  .nav-links { gap: 12px; }
+}

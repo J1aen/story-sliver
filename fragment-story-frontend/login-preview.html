@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>故事碎片墙 · 登录页预览</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f7f3ea;
+      color: #4a4238;
+      font-family: Georgia, "Songti SC", "SimSun", serif;
+      line-height: 1.7;
+    }
+    .preview-note {
+      max-width: 720px;
+      margin: 14px auto 0;
+      padding: 8px 14px;
+      background: #f3e2b8;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #8a6a1f;
+    }
+    .app { max-width: 720px; margin: 0 auto; padding: 0 16px 64px; }
+    .nav {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 18px 0; border-bottom: 1px solid #e5dcc8; margin-bottom: 24px;
+    }
+    .brand { font-size: 20px; letter-spacing: 2px; }
+    .nav-links { display: flex; gap: 16px; color: #8a7a5c; font-size: 14px; }
+    .auth-page { display: flex; justify-content: center; padding-top: 30px; }
+    .auth-card {
+      width: 380px; max-width: 92vw;
+      background: #fbf8f1; border: 1px solid #eadfc8; border-radius: 10px;
+      padding: 28px; box-shadow: 0 2px 8px rgba(74,66,56,.06);
+    }
+    h2 { margin: 0 0 4px; font-size: 22px; }
+    .subtitle { margin: 0 0 18px; color: #a39476; font-size: 14px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+    .tabs button {
+      flex: 1; padding: 8px 0; border: 1px solid #dccba7; border-radius: 6px;
+      background: #f7f3ea; color: #8a7a5c; cursor: pointer; font: inherit; font-size: 14px;
+    }
+    .tabs button.active { background: #4a4238; color: #f7f3ea; border-color: #4a4238; }
+    .input {
+      width: 100%; padding: 9px 12px; border: 1px solid #dccba7; border-radius: 6px;
+      background: #fffdf8; font: inherit; margin-bottom: 10px; font-size: 14px;
+    }
+    .captcha-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .captcha-img {
+      height: 40px; width: 120px; border-radius: 6px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      background: #f7f3ea; border: 1px dashed #dccba7; color: #a39476; font-size: 15px;
+      letter-spacing: 2px; user-select: none;
+    }
+    .checkbox { display: flex; align-items: center; gap: 6px; margin: 4px 0 10px; font-size: 14px; }
+    .btn {
+      width: 100%; padding: 10px 0; border: none; border-radius: 6px; cursor: pointer;
+      background: #4a4238; color: #f7f3ea; font: inherit; font-size: 15px; letter-spacing: 4px;
+    }
+    .error { color: #a3483a; font-size: 13px; margin: 0 0 8px; }
+    .switch { margin-top: 14px; text-align: center; color: #8a7a5c; font-size: 14px; cursor: pointer; }
+    .footer-note { margin-top: 16px; text-align: center; color: #b8a98b; font-size: 12px; }
+    #regFields { display: none; }
+    body.register #regFields { display: block; }
+    body.register #loginOnly { display: none; }
+  </style>
+</head>
+<body>
+  <div class="preview-note">⚠ 这是「登录 / 注册页」的静态设计预览，还不能真正登录；确认样式后我会按它搭真实页面。</div>
+
+  <div class="app">
+    <nav class="nav">
+      <span class="brand">故事碎片墙</span>
+      <div class="nav-links"><span>首页</span><span>登录</span></div>
+    </nav>
+
+    <div class="auth-page">
+      <div class="auth-card">
+        <h2 id="title">登录</h2>
+        <p class="subtitle">匿名故事碎片墙</p>
+
+        <div class="tabs">
+          <button id="tabLogin" class="active" onclick="switchMode('login')">登录</button>
+          <button id="tabReg" onclick="switchMode('register')">注册</button>
+        </div>
+
+        <div id="loginOnly">
+          <input class="input" placeholder="用户名" value="h1ecc" />
+          <input class="input" type="password" placeholder="密码" value="123456" />
+          <p class="error">用户名或密码错误</p>
+          <button class="btn">登 录</button>
+        </div>
+
+        <div id="regFields">
+          <input class="input" placeholder="用户名" value="h1ecc" />
+          <input class="input" placeholder="昵称" value="小故事" />
+          <input class="input" type="password" placeholder="密码（至少 6 位）" value="123456" />
+          <div class="captcha-row">
+            <div class="captcha-img" title="点我刷新">7 + 4 = ?</div>
+            <input class="input" style="margin-bottom:0" placeholder="验证码答案" value="11" />
+          </div>
+          <label class="checkbox"><input type="checkbox" /> 注册为管理员</label>
+          <input class="input" type="password" placeholder="管理员注册特殊密码" />
+          <button class="btn">注 册</button>
+        </div>
+
+        <div class="switch" id="switchText" onclick="switchMode('register')">没有账号？去注册</div>
+        <div class="footer-note">登录成功后将进入「我的碎片」与碎片墙</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchMode(mode) {
+      var isReg = mode === 'register';
+      document.body.classList.toggle('register', isReg);
+      document.getElementById('title').textContent = isReg ? '注册' : '登录';
+      document.getElementById('tabLogin').classList.toggle('active', !isReg);
+      document.getElementById('tabReg').classList.toggle('active', isReg);
+      document.getElementById('switchText').textContent = isReg ? '已有账号？去登录' : '没有账号？去注册';
+      document.getElementById('switchText').onclick = function() { switchMode(isReg ? 'login' : 'register'); };
+    }
+  </script>
+</body>
+</html>
