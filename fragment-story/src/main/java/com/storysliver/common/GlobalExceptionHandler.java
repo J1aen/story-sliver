@@ -4,10 +4,12 @@ import com.storysliver.pojo.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
@@ -36,6 +38,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(Result.error(ResultCode.BAD_REQUEST.getCode(), message));
     }
 
+    /** 请求体不是合法 JSON：返回 400，而不是 500 */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Result> handleUnreadable(HttpMessageNotReadableException e) {
+        return ResponseEntity.badRequest().body(Result.error(ResultCode.BAD_REQUEST.getCode(), "请求体格式错误"));
+    }
+
+    /** 路径不存在（没有对应 Controller）：返回 404 */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Result> handleNotFound(NoResourceFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Result.error(ResultCode.NOT_FOUND.getCode(), "接口不存在"));
+    }
+
     /** 兜底异常：任何没预料到的错误统一返回 500，不把堆栈细节泄露给前端 */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Result> handleException(Exception e) {
@@ -44,13 +59,19 @@ public class GlobalExceptionHandler {
                 .body(Result.error(ResultCode.INTERNAL_ERROR.getCode(), ResultCode.INTERNAL_ERROR.getMessage()));
     }
 
-    /** 错误码 → HTTP 状态码映射，让前端能靠 HTTP status 区分 401/403/404 */
+    /**
+     * 错误码 → HTTP 状态码映射。
+     * 为什么按 code 数字而不是按枚举名匹配：
+     * 业务错误码会不断新增（验证码 400、限流 429、登录失败 401……），
+     * 按数字归类后，新增错误码不用再改这里。
+     */
     private HttpStatus statusOf(ResultCode resultCode) {
-        return switch (resultCode) {
-            case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
-            case FORBIDDEN -> HttpStatus.FORBIDDEN;
-            case NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case BAD_REQUEST -> HttpStatus.BAD_REQUEST;
+        return switch (resultCode.getCode()) {
+            case 400 -> HttpStatus.BAD_REQUEST;
+            case 401 -> HttpStatus.UNAUTHORIZED;
+            case 403 -> HttpStatus.FORBIDDEN;
+            case 404 -> HttpStatus.NOT_FOUND;
+            case 429 -> HttpStatus.TOO_MANY_REQUESTS;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }
