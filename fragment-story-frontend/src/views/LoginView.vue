@@ -9,6 +9,7 @@ const router = useRouter()
 const mode = ref('login') // login | register
 const form = ref({ username: '', nickname: '', password: '', isAdmin: false, adminCode: '' })
 const captcha = ref({ key: '', answer: '' })
+const captchaField = ref(null)// 验证码组件实例，注册失败时刷新用
 const error = ref('')
 const submitting = ref(false)
 
@@ -39,6 +40,10 @@ async function submit() {
     router.push('/')
   } catch (e) {
     error.value = e.message
+    // 注册失败（尤其是验证码错误）：验证码一次性，失败后自动换新
+    if (mode.value === 'register') {
+      captchaField.value?.refresh()
+    }
   } finally {
     submitting.value = false
   }
@@ -62,7 +67,7 @@ async function submit() {
         <input v-model="form.password" type="password" class="input" placeholder="密码（至少 6 位）" autocomplete="current-password" required />
 
         <template v-if="mode === 'register'">
-          <CaptchaField @update="captcha = $event" />
+          <CaptchaField ref="captchaField" @update="captcha = $event" />
           <label class="checkbox">
             <input type="checkbox" v-model="form.isAdmin" /> 注册为管理员
           </label>

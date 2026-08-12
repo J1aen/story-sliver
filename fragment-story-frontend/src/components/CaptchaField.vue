@@ -20,6 +20,9 @@ async function refresh() {
 watch(() => state.answer, (v) => emit('update', { key: state.key, answer: v }))
 
 onMounted(refresh)
+
+// 暴露刷新方法：注册失败时父组件调用，自动换一张新验证码（旧的一次性 key 已失效）
+defineExpose({ refresh })
 </script>
 
 <template>
