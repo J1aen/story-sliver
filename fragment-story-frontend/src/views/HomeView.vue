@@ -105,7 +105,10 @@ onMounted(loadMore)
 
     <p v-if="!loading && fragments.length === 0" class="empty">还没有碎片，来写第一块吧</p>
 
-    <FragmentCard v-for="f in fragments" :key="f.id" :fragment="f" @like="toggleLike" />
+    <!-- 瀑布流：桌面 3 列 / 平板 2 列 / 手机 1 列 -->
+    <div class="fragment-masonry">
+      <FragmentCard v-for="f in fragments" :key="f.id" :fragment="f" @like="toggleLike" />
+    </div>
 
     <div v-if="hasMore" class="more-wrap">
       <button class="btn" :disabled="loading" @click="loadMore">{{ loading ? '加载中…' : '加载更多' }}</button>

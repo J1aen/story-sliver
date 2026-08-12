@@ -135,6 +135,12 @@ h1 { font-size: 26px; }
 .empty { text-align: center; color: #a39476; padding: 48px 0; }
 .more-wrap { text-align: center; margin: 20px 0; }
 
+/* ===== 瀑布流布局（方案 C） ===== */
+.fragment-masonry { column-count: 3; column-gap: 14px; }
+.fragment-masonry .fragment-card { break-inside: avoid; margin-bottom: 14px; }
+@media (max-width: 900px) { .fragment-masonry { column-count: 2; } }
+@media (max-width: 560px) { .fragment-masonry { column-count: 1; } }
+
 /* ===== 身份铭牌（站长 / 管理员 不同样式） ===== */
 .badge { display: inline-block; font-size: 12px; line-height: 1; padding: 3px 7px; border-radius: 8px; margin-left: 4px; }
 .badge.owner { background: #f3e2b8; color: #8a6a1f; border: 1px solid #e0c878; }
