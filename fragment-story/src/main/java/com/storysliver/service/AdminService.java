@@ -34,6 +34,6 @@ public interface AdminService {
     /** 头像审核通过：待审核头像转正为当前头像 */
     void approveAvatar(Long userId);
 
-    /** 头像审核拒绝：清空待审核头像，保留旧头像 */
-    void rejectAvatar(Long userId);
+    /** 头像审核拒绝：清空待审核头像（保留旧头像），记录拒绝原因 */
+    void rejectAvatar(Long userId, String reason);
 }

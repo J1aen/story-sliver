@@ -19,6 +19,7 @@ const fragments = ref([])
 const avatars = ref([])
 const users = ref([])
 const newCode = ref('')
+const rejectReason = ref('')
 const message = ref('')
 const confirmTarget = ref(null)
 
@@ -43,7 +44,11 @@ async function onAvatarApprove(u) {
   try { await approveAvatar(u.id); await loadAvatars() } catch (e) { message.value = e.message }
 }
 async function onAvatarReject(u) {
-  try { await rejectAvatar(u.id); await loadAvatars() } catch (e) { message.value = e.message }
+  try {
+    await rejectAvatar(u.id, rejectReason.value.trim() || null)
+    rejectReason.value = ''
+    await loadAvatars()
+  } catch (e) { message.value = e.message }
 }
 async function onRole(u, role) {
   try { await updateUserRole(u.id, role); await loadUsers() } catch (e) { message.value = e.message }
@@ -103,6 +108,7 @@ onMounted(() => loadFragments(0))
 
     <!-- 头像审核队列 -->
     <template v-if="tab === 'avatars'">
+      <input v-model="rejectReason" class="input" placeholder="拒绝原因（可选，用户端会看到）" />
       <p v-if="avatars.length === 0" class="empty">没有待审核头像</p>
       <article v-for="u in avatars" :key="u.id" class="card">
         <div class="meta">

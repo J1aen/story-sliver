@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -153,8 +154,8 @@ public class UserServiceImpl implements UserService {
         if (file.getSize() > MAX_AVATAR_SIZE) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "头像大小不能超过 2MB");
         }
-        // 3. 生成唯一文件名并保存（中心裁剪成正方形，统一 128x128）
-        String fileName = "avatar_" + userId + "_" + System.currentTimeMillis() + ".jpg";
+        // 3. 生成唯一文件名并保存（保留透明通道，统一 128x128，存 PNG）
+        String fileName = "avatar_" + userId + "_" + System.currentTimeMillis() + ".png";
         File dir = new File(avatarDir);
         if (!dir.exists()) {
             dir.mkdirs();//目录不存在就创建
@@ -165,7 +166,7 @@ public class UserServiceImpl implements UserService {
             if (src == null) {
                 throw new BusinessException(ResultCode.BAD_REQUEST, "无法解析图片");
             }
-            ImageIO.write(cropToSquare(src, AVATAR_SIZE), "jpg", target);
+            ImageIO.write(cropToSquare(src, AVATAR_SIZE), "png", target);
         } catch (IOException e) {
             throw new BusinessException(ResultCode.INTERNAL_ERROR, "头像保存失败");
         }
@@ -175,7 +176,7 @@ public class UserServiceImpl implements UserService {
         return url;
     }
 
-    /** 把任意图片中心裁剪成正方形并缩放到指定尺寸 */
+    /** 把任意图片中心裁剪成正方形并缩放到指定尺寸（保留透明通道，供前端圆形头像使用） */
     private BufferedImage cropToSquare(BufferedImage src, int size) {
         int w = src.getWidth();
         int h = src.getHeight();
@@ -183,8 +184,10 @@ public class UserServiceImpl implements UserService {
         int x = (w - side) / 2;
         int y = (h - side) / 2;
         BufferedImage crop = src.getSubimage(x, y, side, side);
-        BufferedImage out = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+        BufferedImage out = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = out.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g.drawImage(crop, 0, 0, size, size, null);
         g.dispose();
         return out;

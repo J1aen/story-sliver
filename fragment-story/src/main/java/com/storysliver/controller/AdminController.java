@@ -3,6 +3,7 @@ package com.storysliver.controller;
 import com.storysliver.auth.RequireRole;
 import com.storysliver.auth.UserContext;
 import com.storysliver.pojo.Admin.AdminRoleRequest;
+import com.storysliver.pojo.Admin.RejectAvatarRequest;
 import com.storysliver.pojo.Admin.UpdateAdminCodeRequest;
 import com.storysliver.pojo.Result;
 import com.storysliver.pojo.User;
@@ -99,11 +100,11 @@ public class AdminController {
         return Result.success();
     }
 
-    /** 头像审核拒绝：清空待审核头像，保留旧头像 */
-    @DeleteMapping("/avatars/{userId}/reject")
+    /** 头像审核拒绝：清空待审核头像（保留旧头像），记录原因 */
+    @PostMapping("/avatars/{userId}/reject")
     @RequireRole({User.ROLE_ADMIN, User.ROLE_OWNER})
-    public Result rejectAvatar(@PathVariable Long userId) {
-        adminService.rejectAvatar(userId);
+    public Result rejectAvatar(@PathVariable Long userId, @RequestBody(required = false) RejectAvatarRequest request) {
+        adminService.rejectAvatar(userId, request == null ? null : request.getReason());
         return Result.success();
     }
 }

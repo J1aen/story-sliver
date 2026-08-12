@@ -4,29 +4,50 @@ import { getMe, uploadAvatar } from '../api/auth'
 import { getMyFragments } from '../api/fragments'
 import { userStore } from '../stores/user'
 import RoleBadge from '../components/RoleBadge.vue'
+import CropModal from '../components/CropModal.vue'
 
 // 个人主页统计：全部 / 已发布 / 待审核 / 已隐藏
 const stats = ref({ total: 0, published: 0, pending: 0, hidden: 0 })
 const uploading = ref(false)
 const message = ref('')
+const showCrop = ref(false)
+const cropUrl = ref('')
 
-// 选择图片后上传：进入待审核，管理员通过后才替换头像
+// 选择图片 → 打开圆形裁剪框
 async function onFileChange(e) {
   const file = e.target.files[0]
   if (!file) return
+  // 简单客户端校验
+  if (!/image\/(jpeg|png)/.test(file.type)) {
+    message.value = '头像只支持 jpg/png 格式'
+    e.target.value = ''
+    return
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    message.value = '头像大小不能超过 2MB'
+    e.target.value = ''
+    return
+  }
+  cropUrl.value = URL.createObjectURL(file)
+  showCrop.value = true
+  e.target.value = ''
+}
+
+// 裁剪完成 → 上传（进入待审核）
+async function onCropped(blob) {
+  showCrop.value = false
   uploading.value = true
   message.value = ''
   try {
-    const data = await uploadAvatar(file)
+    const data = await uploadAvatar(blob)
     message.value = data.text || '头像已提交，等待管理员审核'
-    // 刷新用户信息：avatarPending 会让页面显示「审核中」
     const me = await getMe()
     userStore.setUser(me)
   } catch (err) {
     message.value = err.message
   } finally {
     uploading.value = false
-    e.target.value = ''
+    URL.revokeObjectURL(cropUrl.value)
   }
 }
 
@@ -59,6 +80,10 @@ onMounted(async () => {
       <RoleBadge :role="userStore.user?.role" />
       <!-- 有待审核头像时提示「审核中」 -->
       <p v-if="userStore.user?.avatarPending" class="pending-tip">头像审核中…</p>
+      <!-- 头像被拒绝时显示原因（重新上传或通过后自动消失） -->
+      <p v-if="userStore.user?.avatarRejectReason && !userStore.user?.avatarPending" class="reject-tip">
+        头像被拒绝：{{ userStore.user.avatarRejectReason }}
+      </p>
       <p v-if="message" class="error">{{ message }}</p>
       <div class="avatar-upload">
         <label class="btn small">
@@ -73,5 +98,12 @@ onMounted(async () => {
         <div><b>{{ stats.hidden }}</b><span>已隐藏</span></div>
       </div>
     </div>
+
+    <CropModal
+      :show="showCrop"
+      :image-url="cropUrl"
+      @cropped="onCropped"
+      @cancel="showCrop = false; URL.revokeObjectURL(cropUrl)"
+    />
   </div>
 </template>

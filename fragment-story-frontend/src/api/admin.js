@@ -8,7 +8,7 @@ export const adminDeleteFragment = (id) => request.delete(`/admin/fragments/${id
 // 头像审核队列
 export const getPendingAvatars = (pageNum, pageSize) => request.get('/admin/avatars', { params: { pageNum, pageSize } })
 export const approveAvatar = (userId) => request.post(`/admin/avatars/${userId}/approve`)
-export const rejectAvatar = (userId) => request.delete(`/admin/avatars/${userId}/reject`)
+export const rejectAvatar = (userId, reason) => request.post(`/admin/avatars/${userId}/reject`, { reason })
 
 // 用户管理（仅站长）
 export const getUsers = (pageNum, pageSize) => request.get('/admin/users', { params: { pageNum, pageSize } })

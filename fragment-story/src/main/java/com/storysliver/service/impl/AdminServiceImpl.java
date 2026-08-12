@@ -158,11 +158,12 @@ public class AdminServiceImpl implements AdminService {
         userMapper.approveAvatar(userId);
     }
 
-    /** 头像审核拒绝：清空待审核头像，保留旧头像 */
+    /** 头像审核拒绝：清空待审核头像（保留旧头像），并记录原因（空则用默认文案） */
     @Override
-    public void rejectAvatar(Long userId) {
+    public void rejectAvatar(Long userId, String reason) {
         requirePendingAvatar(userId);
-        userMapper.clearAvatarPending(userId);
+        String text = (reason == null || reason.isBlank()) ? "头像不符合要求" : reason.trim();
+        userMapper.rejectAvatar(userId, text);
     }
 
     /** 校验用户存在且有「待审核头像」 */
