@@ -1,12 +1,35 @@
 package com.storysliver.service;
 
+import com.storysliver.pojo.Auth.RegisterRequest;
+import com.storysliver.pojo.User;
+
 /**
- * 用户服务接口（Task 5，待实现）。
- * 干什么用：定义注册 / 登录 / 当前用户信息三个业务方法。
- * 待实现的方法：
- *   String register(RegisterRequest request, String ip) —— 注册（成功自动登录，返回 JWT）
- *   String login(String username, String password) —— 登录，返回 JWT
- *   User me(Long userId) —— 查询当前用户信息
+ * 用户服务接口：注册 / 登录 / 当前用户信息。
+ * 为什么定义接口而不是直接写实现类：
+ * Controller 只依赖接口，换实现或做单元测试（Mockito 打桩）都方便。
  */
 public interface UserService {
+
+    /**
+     * 注册用户。
+     * @param request 注册表单（用户名/昵称/密码/验证码/是否管理员）
+     * @param ip 客户端 IP，用于注册限流
+     * @return JWT token（注册成功即自动登录）
+     */
+    String register(RegisterRequest request, String ip);
+
+    /**
+     * 登录。
+     * @param username 用户名
+     * @param password 明文密码
+     * @return JWT token
+     */
+    String login(String username, String password);
+
+    /**
+     * 查询当前登录用户信息。
+     * @param userId 用户 id（来自 UserContext）
+     * @return 用户信息
+     */
+    User me(Long userId);
 }
