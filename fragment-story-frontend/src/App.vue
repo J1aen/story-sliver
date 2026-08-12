@@ -16,6 +16,8 @@ function logout() {
       <div class="nav-links">
         <router-link to="/">首页</router-link>
         <router-link v-if="userStore.token" to="/profile">个人主页</router-link>
+        <router-link v-if="userStore.token" to="/my">我的碎片</router-link>
+        <router-link v-if="userStore.isAdmin" to="/admin">管理</router-link>
         <button v-if="userStore.token" class="link" @click="logout">退出</button>
         <router-link v-else to="/login">登录</router-link>
       </div>

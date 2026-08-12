@@ -157,3 +157,17 @@ h1 { font-size: 26px; }
 
 /* 碎片作者小头像 */
 .author-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+.author-avatar.large { width: 48px; height: 48px; }
+
+/* ===== 确认弹窗 ===== */
+.modal-mask { position: fixed; inset: 0; background: rgba(74, 66, 56, 0.35); display: flex; align-items: center; justify-content: center; z-index: 10; }
+.modal { background: #fbf8f1; border-radius: 10px; padding: 24px; width: 380px; max-width: 92vw; }
+.modal.small { width: 340px; }
+.modal h3 { margin: 0 0 10px; }
+.danger-text { color: #a3483a; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+/* ===== 管理后台表格 ===== */
+.table { width: 100%; border-collapse: collapse; background: #fbf8f1; }
+.table th, .table td { border: 1px solid #eadfc8; padding: 8px 10px; font-size: 14px; text-align: left; }
+.table th { background: #f1ead9; }
