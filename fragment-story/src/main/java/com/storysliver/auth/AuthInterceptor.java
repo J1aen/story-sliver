@@ -73,7 +73,11 @@ public class AuthInterceptor implements HandlerInterceptor {
                 userMapper.unban(user.getId());
             } else {
                 UserContext.clear();
-                writeJson(response, 403, Result.error(403, "账号已被封禁，请联系站长"));
+                String reason = user.getBanReason();
+                String text = (reason == null || reason.isBlank())
+                        ? "账号已被封禁，请联系站长"
+                        : "账号已被封禁：" + reason + "（请联系站长）";
+                writeJson(response, 403, Result.error(403, text));
                 return false;
             }
         }

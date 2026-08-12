@@ -135,6 +135,9 @@ h1 { font-size: 26px; }
 .tag { font-size: 12px; padding: 1px 8px; border-radius: 10px; background: #eee4cf; color: #6d5f47; }
 .tag.pending { background: #f3e2b8; color: #8a6a1f; }
 .tag.hidden { background: #e2e0da; color: #6a675f; }
+.tag.perm-ban { background: #f3d6d6; color: #a33; }
+.tag.temp-ban { background: #f7e2c4; color: #8a5a1f; }
+.ban-reason { font-size: 12px; color: #a3957a; margin-top: 2px; }
 .empty { text-align: center; color: #a39476; padding: 48px 0; }
 .more-wrap { text-align: center; margin: 20px 0; }
 

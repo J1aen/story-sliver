@@ -26,6 +26,7 @@ const rejectingId = ref(null)// 当前正在填拒绝原因的用户 id（null=�
 const banTarget = ref(null)// 当前封禁弹窗的目标：{ type: 'fragment'|'user', id, userId, name }
 const banPermanent = ref(false)
 const banDays = ref('')
+const banReason = ref('')
 const message = ref('')
 const confirmTarget = ref(null)
 
@@ -96,6 +97,7 @@ function openBan(target) {
   banTarget.value = target
   banPermanent.value = false
   banDays.value = ''
+  banReason.value = ''
 }
 
 function cancelBan() {
@@ -104,6 +106,11 @@ function cancelBan() {
 
 async function submitBan() {
   const t = banTarget.value
+  const reason = banReason.value.trim()
+  if (!reason) {
+    message.value = '封禁理由不能为空'
+    return
+  }
   let days = null
   if (!banPermanent.value) {
     days = parseInt(banDays.value, 10)
@@ -115,12 +122,12 @@ async function submitBan() {
   try {
     if (t.type === 'fragment') {
       await adminDeleteFragment(t.id)
-      await banUser(t.userId, days)
-      message.value = `已删除碎片并封禁 ${t.name || '该用户'}` + (banPermanent.value ? '（永久）' : `（${days} 天）`)
+      await banUser(t.userId, days, reason)
+      message.value = `已删除碎片并封禁 ${t.name || '该用户'}` + (banPermanent.value ? '（永久）' : `（${days} 天）`) + `，理由：${reason}`
       await loadFragments(tab.value === 'review' ? 0 : 1)
     } else {
-      await banUser(t.id, days)
-      message.value = `已封禁 ${t.name || '该用户'}` + (banPermanent.value ? '（永久）' : `（${days} 天）`)
+      await banUser(t.id, days, reason)
+      message.value = `已封禁 ${t.name || '该用户'}` + (banPermanent.value ? '（永久）' : `（${days} 天）`) + `，理由：${reason}`
       await loadUsers()
     }
     cancelBan()
@@ -202,7 +209,12 @@ onMounted(() => loadFragments(0))
         <tr v-for="u in users" :key="u.id">
           <td>{{ u.id }}</td><td>{{ u.username }}</td><td>{{ u.nickname }}</td>
           <td>{{ u.role === 2 ? '站长' : u.role === 1 ? '管理员' : '普通' }}</td>
-          <td>{{ u.status === 1 ? '封禁中' : '正常' }}</td>
+          <td>
+            <span v-if="u.status === 0">正常</span>
+            <span v-else-if="u.status === 1 && u.banExpiresAt" class="tag temp-ban">暂时封禁（至 {{ (u.banExpiresAt || '').slice(0, 10) }}）</span>
+            <span v-else-if="u.status === 1" class="tag perm-ban">永久封禁</span>
+            <div v-if="u.status === 1 && u.banReason" class="ban-reason">理由：{{ u.banReason }}</div>
+          </td>
           <td>
             <div class="row-actions">
               <button v-if="u.role === 0" class="btn xs" @click="onRole(u, 1)">设为管理员</button>
@@ -238,6 +250,7 @@ onMounted(() => loadFragments(0))
       <div class="modal">
         <h3>封禁{{ banTarget.type === 'fragment' ? '并删除该碎片' : '账号' }}</h3>
         <p class="subtitle">封禁 {{ banTarget.name }}{{ banTarget.type === 'fragment' ? '，并删除该碎片' : '' }}</p>
+        <input v-model="banReason" class="input" placeholder="封禁理由（必填，被封禁用户可见）" />
         <label class="checkbox"><input type="checkbox" v-model="banPermanent" /> 永久封禁</label>
         <input v-if="!banPermanent" v-model="banDays" type="number" min="1" class="input" placeholder="封禁天数（至少 1 天）" />
         <div class="modal-actions">

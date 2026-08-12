@@ -128,18 +128,30 @@ public class UserServiceImpl implements UserService {
     @Override
     public String login(String username, String password) {
         User user = userMapper.selectByUsername(username);
-        if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
+        if (user == null) {
             throw new BusinessException(ResultCode.LOGIN_FAILED);
         }
-        // 封禁账号禁止登录，并给出明确提示；已到期的封禁自动解封
+        // 封禁检查放在密码校验之前：被封禁的账号登录时提示封禁（即使密码输错）
+        // 已到期的封禁自动解封
         if (user.getStatus() != null && user.getStatus() == User.STATUS_BANNED) {
             if (user.getBanExpiresAt() != null && !user.getBanExpiresAt().isAfter(LocalDateTime.now())) {
                 userMapper.unban(user.getId());// 封禁到期，自动解封
             } else {
-                throw new BusinessException(ResultCode.ACCOUNT_BANNED);
+                throw new BusinessException(ResultCode.ACCOUNT_BANNED, banMessage(user));
             }
         }
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new BusinessException(ResultCode.LOGIN_FAILED);
+        }
         return jwtUtil.generateToken(user.getId(), user.getRole());
+    }
+
+    /** 封禁提示文案：带上理由，让被封禁用户知道原因 */
+    private String banMessage(User user) {
+        String reason = user.getBanReason();
+        return reason == null || reason.isBlank()
+                ? ResultCode.ACCOUNT_BANNED.getMessage()
+                : "账号已被封禁：" + reason + "（请联系站长）";
     }
 
     /** 查询当前用户：前端登录后拉取昵称、角色用于展示 */

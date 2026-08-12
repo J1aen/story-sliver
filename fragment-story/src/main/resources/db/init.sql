@@ -26,6 +26,7 @@ CREATE TABLE `user` (
     avatar_pending VARCHAR(255) DEFAULT NULL COMMENT '待审核头像URL（审核通过后转正到 avatar）',
     avatar_reject_reason VARCHAR(255) DEFAULT NULL COMMENT '头像被拒绝原因（拒绝时写入，重新上传/通过后清空）',
     ban_expires_at DATETIME    DEFAULT NULL COMMENT '封禁到期时间（null 且 status=1 表示永久封禁）',
+    ban_reason     VARCHAR(255) DEFAULT NULL COMMENT '封禁理由（必填，被封禁用户登录时可见）',
     created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (id),

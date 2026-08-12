@@ -112,8 +112,8 @@ public class AdminController {
     /** 封禁账号（管理员及以上；管理员审核时发现违规可「删除并封禁」） */
     @PostMapping("/users/{id}/ban")
     @RequireRole({User.ROLE_ADMIN, User.ROLE_OWNER})
-    public Result banUser(@PathVariable Long id, @RequestBody(required = false) BanUserRequest request) {
-        adminService.banUser(UserContext.getRole(), id, request == null ? null : request.getDays());
+    public Result banUser(@PathVariable Long id, @RequestBody BanUserRequest request) {
+        adminService.banUser(UserContext.getRole(), id, request.getDays(), request.getReason());
         return Result.success();
     }
 
