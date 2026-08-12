@@ -22,6 +22,8 @@ CREATE TABLE `user` (
     email      VARCHAR(100)    DEFAULT NULL COMMENT '预留邮箱（暂不验证）',
     role       TINYINT         NOT NULL DEFAULT 0 COMMENT '角色：0普通 1管理员 2站长',
     status     TINYINT         NOT NULL DEFAULT 0 COMMENT '状态：0正常 1封禁（预留）',
+    avatar     VARCHAR(255)    DEFAULT NULL COMMENT '当前头像URL（已审核通过）',
+    avatar_pending VARCHAR(255) DEFAULT NULL COMMENT '待审核头像URL（审核通过后转正到 avatar）',
     created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (id),

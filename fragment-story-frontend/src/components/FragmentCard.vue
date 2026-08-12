@@ -8,6 +8,8 @@ defineEmits(['like', 'delete', 'hide', 'unhide'])
 <template>
   <article class="card fragment-card">
     <div class="meta">
+      <!-- 非匿名且作者有已审核头像：显示小圆头像 -->
+      <img v-if="fragment.authorAvatar" :src="fragment.authorAvatar" class="author-avatar" alt="" />
       <span class="author">{{ fragment.authorName }}</span>
       <!-- 非匿名且作者是站长/管理员时，显示身份铭牌（匿名时 authorRole 为 null，不显示） -->
       <RoleBadge v-if="fragment.authorRole" :role="fragment.authorRole" />

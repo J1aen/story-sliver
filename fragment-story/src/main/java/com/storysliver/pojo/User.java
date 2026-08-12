@@ -28,6 +28,8 @@ public class User {
     private String email;//预留邮箱（暂不验证，以后接 QQ 邮箱验证）
     private Integer role;//角色：0普通 1管理员 2站长
     private Integer status;//状态：0正常 1封禁（预留）
+    private String avatar;//当前头像 URL（已审核通过，可为 null）
+    private String avatarPending;//待审核头像 URL（上传后、审核前；通过后转正到 avatar）
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;//创建时间
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

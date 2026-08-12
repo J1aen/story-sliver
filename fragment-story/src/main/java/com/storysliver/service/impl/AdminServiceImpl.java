@@ -138,6 +138,44 @@ public class AdminServiceImpl implements AdminService {
         systemConfigMapper.upsert(SystemConfig.KEY_ADMIN_REGISTER_CODE, passwordEncoder.encode(newCode));
     }
 
+    /**
+     * 待审核头像队列：查出 avatar_pending 不为空的用户。
+     * 为什么密码要置空：管理员页只需要看头像和昵称，密码哈希绝不能返回。
+     */
+    @Override
+    public PageBean pendingAvatars(int pageNum, int pageSize) {
+        PageHelper.startPage(pageNum, pageSize);
+        List<User> list = userMapper.selectPendingAvatarUsers();
+        Page<User> page = (Page<User>) list;
+        page.getResult().forEach(u -> u.setPassword(null));
+        return new PageBean(page.getTotal(), page.getResult());
+    }
+
+    /** 头像审核通过：待审核头像转正（先确认用户和待审核头像都存在） */
+    @Override
+    public void approveAvatar(Long userId) {
+        requirePendingAvatar(userId);
+        userMapper.approveAvatar(userId);
+    }
+
+    /** 头像审核拒绝：清空待审核头像，保留旧头像 */
+    @Override
+    public void rejectAvatar(Long userId) {
+        requirePendingAvatar(userId);
+        userMapper.clearAvatarPending(userId);
+    }
+
+    /** 校验用户存在且有「待审核头像」 */
+    private void requirePendingAvatar(Long userId) {
+        User u = userMapper.selectById(userId);
+        if (u == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "用户不存在");
+        }
+        if (u.getAvatarPending() == null) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "该用户没有待审核头像");
+        }
+    }
+
     /** 校验碎片存在：审核 / 删除的前置条件 */
     private StoryFragment requireExists(Long fragmentId) {
         StoryFragment f = fragmentMapper.selectById(fragmentId);

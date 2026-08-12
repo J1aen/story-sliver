@@ -2,9 +2,11 @@ package com.storysliver.config;
 
 import com.storysliver.auth.AuthInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -17,6 +19,10 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Autowired
     private AuthInterceptor authInterceptor;
+
+    /** 头像保存目录（来自 application.properties 的 app.upload.avatar-dir） */
+    @Value("${app.upload.avatar-dir}")
+    private String avatarDir;
 
     /** 注册 JWT 拦截器：/api/** 都拦截，公开接口排除 */
     @Override
@@ -40,5 +46,12 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600);
+    }
+
+    /** 头像静态资源映射：/uploads/** → 本地 D:/HeadImage 目录 */
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("file:" + avatarDir + "/");
     }
 }

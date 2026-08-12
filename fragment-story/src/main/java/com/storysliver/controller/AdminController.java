@@ -82,4 +82,28 @@ public class AdminController {
         adminService.updateAdminCode(UserContext.getRole(), request.getNewCode());
         return Result.success();
     }
+
+    /** 待审核头像队列（管理员及以上）：查看谁的头像在等审核 */
+    @GetMapping("/avatars")
+    @RequireRole({User.ROLE_ADMIN, User.ROLE_OWNER})
+    public Result avatars(@RequestParam(defaultValue = "1") int pageNum,
+                          @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(adminService.pendingAvatars(pageNum, pageSize));
+    }
+
+    /** 头像审核通过：待审核头像转正 */
+    @PostMapping("/avatars/{userId}/approve")
+    @RequireRole({User.ROLE_ADMIN, User.ROLE_OWNER})
+    public Result approveAvatar(@PathVariable Long userId) {
+        adminService.approveAvatar(userId);
+        return Result.success();
+    }
+
+    /** 头像审核拒绝：清空待审核头像，保留旧头像 */
+    @DeleteMapping("/avatars/{userId}/reject")
+    @RequireRole({User.ROLE_ADMIN, User.ROLE_OWNER})
+    public Result rejectAvatar(@PathVariable Long userId) {
+        adminService.rejectAvatar(userId);
+        return Result.success();
+    }
 }

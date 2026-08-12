@@ -27,4 +27,13 @@ public interface AdminService {
 
     /** 修改管理员注册特殊密码（仅站长，BCrypt 哈希落库） */
     void updateAdminCode(Integer operatorRole, String newCode);
+
+    /** 待审核头像队列（分页；头像也是内容，需要管理员审核） */
+    PageBean pendingAvatars(int pageNum, int pageSize);
+
+    /** 头像审核通过：待审核头像转正为当前头像 */
+    void approveAvatar(Long userId);
+
+    /** 头像审核拒绝：清空待审核头像，保留旧头像 */
+    void rejectAvatar(Long userId);
 }

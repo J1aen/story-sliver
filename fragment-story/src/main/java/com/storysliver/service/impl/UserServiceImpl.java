@@ -12,8 +12,16 @@ import com.storysliver.pojo.SystemConfig;
 import com.storysliver.pojo.User;
 import com.storysliver.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.imageio.ImageIO;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * 用户服务实现：注册 / 登录的核心业务逻辑。
@@ -40,6 +48,15 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private JwtUtil jwtUtil;//登录令牌签发
+
+    /** 头像保存目录：来自 application.properties 的 app.upload.avatar-dir（当前 D:/HeadImage） */
+    @Value("${app.upload.avatar-dir}")
+    private String avatarDir;
+
+    /** 头像大小上限：2MB */
+    private static final long MAX_AVATAR_SIZE = 2 * 1024 * 1024L;
+    /** 头像统一裁剪成 128x128 正方形 */
+    private static final int AVATAR_SIZE = 128;
 
     /**
      * 注册：按顺序完成 8 个动作，任何一个失败就抛 BusinessException 结束。
@@ -119,5 +136,57 @@ public class UserServiceImpl implements UserService {
     @Override
     public User me(Long userId) {
         return userMapper.selectById(userId);
+    }
+
+    /**
+     * 上传头像：校验 → 保存到本地目录 → 写入「待审核」字段。
+     * 为什么进待审核而不是直接生效：头像也是内容，要经过管理员审核（与碎片一致）。
+     */
+    @Override
+    public String uploadAvatar(Long userId, MultipartFile file) {
+        // 1. 校验类型：只允许 jpg/png
+        String contentType = file == null ? null : file.getContentType();
+        if (contentType == null || !(contentType.equals("image/jpeg") || contentType.equals("image/png"))) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "头像只支持 jpg/png 格式");
+        }
+        // 2. 校验大小：不超过 2MB
+        if (file.getSize() > MAX_AVATAR_SIZE) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "头像大小不能超过 2MB");
+        }
+        // 3. 生成唯一文件名并保存（中心裁剪成正方形，统一 128x128）
+        String fileName = "avatar_" + userId + "_" + System.currentTimeMillis() + ".jpg";
+        File dir = new File(avatarDir);
+        if (!dir.exists()) {
+            dir.mkdirs();//目录不存在就创建
+        }
+        File target = new File(dir, fileName);
+        try {
+            BufferedImage src = ImageIO.read(file.getInputStream());
+            if (src == null) {
+                throw new BusinessException(ResultCode.BAD_REQUEST, "无法解析图片");
+            }
+            ImageIO.write(cropToSquare(src, AVATAR_SIZE), "jpg", target);
+        } catch (IOException e) {
+            throw new BusinessException(ResultCode.INTERNAL_ERROR, "头像保存失败");
+        }
+        // 4. 写入待审核字段（旧头像继续显示，审核通过后才替换）
+        String url = "/uploads/" + fileName;
+        userMapper.updateAvatarPending(userId, url);
+        return url;
+    }
+
+    /** 把任意图片中心裁剪成正方形并缩放到指定尺寸 */
+    private BufferedImage cropToSquare(BufferedImage src, int size) {
+        int w = src.getWidth();
+        int h = src.getHeight();
+        int side = Math.min(w, h);//取短边作为正方形边长
+        int x = (w - side) / 2;
+        int y = (h - side) / 2;
+        BufferedImage crop = src.getSubimage(x, y, side, side);
+        BufferedImage out = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = out.createGraphics();
+        g.drawImage(crop, 0, 0, size, size, null);
+        g.dispose();
+        return out;
     }
 }

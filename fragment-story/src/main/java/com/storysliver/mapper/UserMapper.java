@@ -24,17 +24,17 @@ public interface UserMapper {
     int insert(User user);
 
     /** 按用户名精确查询：登录、注册唯一性校验用 */
-    @Select("select id, username, nickname, password, email, role, status, created_at, updated_at " +
+    @Select("select id, username, nickname, password, email, role, status, avatar, avatar_pending, created_at, updated_at " +
             "from `user` where username = #{username}")
     User selectByUsername(String username);
 
     /** 按主键查询：我的信息、管理端查看发布者 */
-    @Select("select id, username, nickname, password, email, role, status, created_at, updated_at " +
+    @Select("select id, username, nickname, password, email, role, status, avatar, avatar_pending, created_at, updated_at " +
             "from `user` where id = #{id}")
     User selectById(Long id);
 
     /** 分页查询用户（管理端用户列表，分页由 PageHelper 注入） */
-    @Select("select id, username, nickname, password, email, role, status, created_at, updated_at " +
+    @Select("select id, username, nickname, password, email, role, status, avatar, avatar_pending, created_at, updated_at " +
             "from `user` order by id")
     List<User> selectPage();
 
@@ -51,4 +51,21 @@ public interface UserMapper {
     /** 修改角色：站长指定/撤销管理员时使用 */
     @Update("update `user` set role = #{role} where id = #{id}")
     int updateRole(@Param("id") Long id, @Param("role") Integer role);
+
+    /** 设置待审核头像（用户上传头像后调用） */
+    @Update("update `user` set avatar_pending = #{avatarPending} where id = #{id}")
+    int updateAvatarPending(@Param("id") Long id, @Param("avatarPending") String avatarPending);
+
+    /** 头像审核通过：待审核头像转正（avatar = avatar_pending，并清空待审核） */
+    @Update("update `user` set avatar = avatar_pending, avatar_pending = null where id = #{id} and avatar_pending is not null")
+    int approveAvatar(@Param("id") Long id);
+
+    /** 头像审核拒绝：清空待审核头像（保留旧头像） */
+    @Update("update `user` set avatar_pending = null where id = #{id}")
+    int clearAvatarPending(@Param("id") Long id);
+
+    /** 查询有「待审核头像」的用户（管理端审核队列，分页由 PageHelper 注入） */
+    @Select("select id, username, nickname, avatar, avatar_pending, role, status, created_at, updated_at " +
+            "from `user` where avatar_pending is not null order by id")
+    List<User> selectPendingAvatarUsers();
 }

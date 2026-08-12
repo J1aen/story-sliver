@@ -6,8 +6,13 @@ import com.storysliver.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 /**
  * 用户接口：当前登录用户信息。
@@ -30,5 +35,16 @@ public class UserController {
     public Result me() {
         // UserContext 由 AuthInterceptor 在请求开始时写入，这里直接取，不用从参数传
         return Result.success(userService.me(UserContext.getUserId()));
+    }
+
+    /**
+     * 上传头像（进入待审核）。
+     * @param file 图片文件（multipart 表单字段名 file）
+     * @return { avatarPending, text }，前端提示「等待管理员审核」
+     */
+    @PostMapping("/avatar")
+    public Result avatar(@RequestParam("file") MultipartFile file) {
+        String pending = userService.uploadAvatar(UserContext.getUserId(), file);
+        return Result.success(Map.of("avatarPending", pending, "text", "头像已提交，等待管理员审核"));
     }
 }

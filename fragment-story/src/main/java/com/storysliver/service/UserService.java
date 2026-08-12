@@ -2,6 +2,7 @@ package com.storysliver.service;
 
 import com.storysliver.pojo.Auth.RegisterRequest;
 import com.storysliver.pojo.User;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 用户服务接口：注册 / 登录 / 当前用户信息。
@@ -32,4 +33,12 @@ public interface UserService {
      * @return 用户信息
      */
     User me(Long userId);
+
+    /**
+     * 上传头像（进入待审核状态，管理员通过后才生效）。
+     * @param userId 当前用户 id
+     * @param file 上传的图片（jpg/png，≤2MB）
+     * @return 待审核头像 URL
+     */
+    String uploadAvatar(Long userId, MultipartFile file);
 }

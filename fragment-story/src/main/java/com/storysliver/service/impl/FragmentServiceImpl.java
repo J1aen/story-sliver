@@ -139,6 +139,8 @@ public class FragmentServiceImpl implements FragmentService {
             vo.setAuthorName(author == null ? "未知用户" : author.getNickname());
             // 带上作者角色：前端给站长/管理员显示不同铭牌（需求：非匿名碎片显示身份标识）
             vo.setAuthorRole(author == null ? null : author.getRole());
+            // 带上作者已审核头像：非匿名碎片作者旁显示小圆头像
+            vo.setAuthorAvatar(author == null ? null : author.getAvatar());
         }
         return vo;
     }
