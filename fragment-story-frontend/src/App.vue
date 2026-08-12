@@ -15,6 +15,7 @@ function logout() {
       <span class="brand">故事碎片墙</span>
       <div class="nav-links">
         <router-link to="/">首页</router-link>
+        <router-link v-if="userStore.token" to="/profile">个人主页</router-link>
         <button v-if="userStore.token" class="link" @click="logout">退出</button>
         <router-link v-else to="/login">登录</router-link>
       </div>

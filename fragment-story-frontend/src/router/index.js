@@ -2,12 +2,13 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import { userStore } from '../stores/user'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
+import ProfileView from '../views/ProfileView.vue'
 
-// 目前只有首页（骗你的大页面）和登录页；碎片墙/我的碎片/管理后台后续加
+// 首页是公开的碎片墙（游客可看，发布/点赞需登录）；个人主页需登录
 const routes = [
-  // requiresAuth：没登录访问首页会跳去登录页（登录成功后才能看到「骗你的」页面）
-  { path: '/', component: HomeView, meta: { requiresAuth: true } },
-  { path: '/login', component: LoginView }
+  { path: '/', component: HomeView },
+  { path: '/login', component: LoginView },
+  { path: '/profile', component: ProfileView, meta: { requiresAuth: true } }
 ]
 
 const router = createRouter({

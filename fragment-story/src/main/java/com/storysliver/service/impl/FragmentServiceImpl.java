@@ -133,9 +133,12 @@ public class FragmentServiceImpl implements FragmentService {
         // 匿名 → 「匿名用户」；实名 → 查一次用户表拿昵称
         if (f.getIsAnonymous() == 1) {
             vo.setAuthorName("匿名用户");
+            vo.setAuthorRole(null);//匿名不暴露身份，也没有铭牌
         } else {
             User author = userMapper.selectById(f.getUserId());
             vo.setAuthorName(author == null ? "未知用户" : author.getNickname());
+            // 带上作者角色：前端给站长/管理员显示不同铭牌（需求：非匿名碎片显示身份标识）
+            vo.setAuthorRole(author == null ? null : author.getRole());
         }
         return vo;
     }
