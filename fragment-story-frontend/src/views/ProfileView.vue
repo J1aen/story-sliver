@@ -90,7 +90,7 @@ onMounted(async () => {
       <p v-if="userStore.user?.avatarPending" class="pending-tip">头像审核中…</p>
       <!-- 头像被拒绝时显示原因（重新上传或通过后自动消失） -->
       <div v-if="userStore.user?.avatarRejectReason && !userStore.user?.avatarPending && !dismissReject" class="reject-tip">
-        头像被拒绝：{{ userStore.user.avatarRejectReason }}
+        <span>头像被拒绝：{{ userStore.user.avatarRejectReason }}</span>
         <button class="reject-dismiss" @click="dismissReject = true">知道了</button>
       </div>
       <p v-if="message" class="error">{{ message }}</p>

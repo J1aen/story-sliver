@@ -159,8 +159,10 @@ h1 { font-size: 26px; }
 .profile-card h2 { margin: 0 0 2px; }
 .profile-card .subtitle { margin: 0 0 12px; }
 .pending-tip { display: block; width: fit-content; margin: 12px auto 0; color: #8a6a1f; background: #f3e2b8; padding: 2px 10px; border-radius: 10px; font-size: 13px; }
-.reject-tip { display: block; width: fit-content; margin: 12px auto 0; color: #a3483a; background: #f3e2dd; padding: 2px 10px; border-radius: 10px; font-size: 13px; }
-.reject-dismiss { margin-left: 8px; background: none; border: none; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; font-size: 12px; }
+.reject-tip { display: flex; align-items: center; justify-content: center; gap: 10px; width: fit-content; max-width: 100%; margin: 12px auto 0; color: #a3483a; background: #f3e2dd; border: 1px solid #e0bdb2; padding: 6px 12px; border-radius: 10px; font-size: 13px; }
+.reject-tip span { line-height: 1.5; }
+.reject-dismiss { flex-shrink: 0; background: #a3483a; color: #fdf6f4; border: none; border-radius: 999px; padding: 4px 14px; cursor: pointer; font: inherit; font-size: 12px; letter-spacing: 2px; transition: opacity 0.15s; }
+.reject-dismiss:hover { opacity: 0.85; }
 .avatar-upload { margin: 10px 0; }
 .profile-stats { display: flex; justify-content: space-around; margin-top: 20px; padding-top: 16px; border-top: 1px solid #eadfc8; }
 .profile-stats div { display: flex; flex-direction: column; }
