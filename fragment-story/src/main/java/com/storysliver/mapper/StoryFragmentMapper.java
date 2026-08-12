@@ -58,4 +58,6 @@ public interface StoryFragmentMapper {
     /** 点赞数 -1：GREATEST 保证不小于 0 */
     @Update("update story_fragment set like_count = greatest(like_count - 1, 0) where id = #{id}")
     int decreaseLikeCount(Long id);
+
+
 }

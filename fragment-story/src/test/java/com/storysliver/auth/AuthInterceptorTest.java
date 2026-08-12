@@ -57,4 +57,21 @@ class AuthInterceptorTest {
         assertFalse(interceptor.preHandle(request, response, new Object()));
         assertEquals(401, response.getStatus());
     }
+
+    /** 公开接口：GET /api/fragments 不带 token 也放行（游客可看墙） */
+    @Test
+    void publicListGetPassesWithoutToken() throws Exception {
+        request.setMethod("GET");
+        request.setRequestURI("/api/fragments");
+        assertTrue(interceptor.preHandle(request, response, new Object()));
+    }
+
+    /** 发布接口：POST /api/fragments 不带 token 必须被拦（防止发布拿不到登录用户） */
+    @Test
+    void submitPostRequiresToken() throws Exception {
+        request.setMethod("POST");
+        request.setRequestURI("/api/fragments");
+        assertFalse(interceptor.preHandle(request, response, new Object()));
+        assertEquals(401, response.getStatus());
+    }
 }

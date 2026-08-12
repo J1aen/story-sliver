@@ -165,9 +165,9 @@ public class FragmentServiceImpl implements FragmentService {
 
         // 记录「谁赞了哪条」
         FragmentLike like = new FragmentLike();
-        like.setFragmentId(fragmentId);
-        like.setUserId(userId);
-        likeMapper.insert(like);
+        like.setFragmentId(fragmentId); // 碎片 id
+        like.setUserId(userId); // 用户 id
+        likeMapper.insert(like); //插入点赞记录
 
         // 冗余计数 +1（首页列表直接显示，不用每次 COUNT）
         fragmentMapper.increaseLikeCount(fragmentId);

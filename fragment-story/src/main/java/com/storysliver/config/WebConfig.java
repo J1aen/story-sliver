@@ -26,8 +26,9 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/auth/captcha",//验证码：注册前必须先拿
                         "/api/auth/register",//注册：还没有账号
-                        "/api/auth/login",//登录：还没有 token
-                        "/api/fragments");//首页列表：游客可看
+                        "/api/auth/login");//登录：还没有 token
+        // 注意：首页列表 GET /api/fragments 的「游客放行」在 AuthInterceptor 里按方法判断，
+        // 不能在这里排除路径——否则 POST 发布接口也会被放行（没有登录用户）
     }
 
     /** 开发阶段前后端分端口运行，允许任意来源；上线后同端口托管，此配置不再生效 */
