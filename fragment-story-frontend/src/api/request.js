@@ -6,6 +6,9 @@ const request = axios.create({
   timeout: 10000
 })
 
+// 封禁提示只弹一次：封禁瞬间可能多个请求同时返回 403，防止 alert 连弹好几遍
+let banAlertShown = false
+
 // 请求拦截器：有 token 就自动带上
 request.interceptors.request.use((config) => {
   if (userStore.token) {
@@ -29,7 +32,11 @@ request.interceptors.response.use(
     // 账号被封禁：弹出提示并退出登录（登录态中的封禁立即生效）
     if (status === 403 && data.text && data.text.includes('封禁')) {
       userStore.logout()
-      alert(data.text)
+      if (!banAlertShown) {
+        banAlertShown = true
+        alert(data.text)
+        setTimeout(() => { banAlertShown = false }, 2000)
+      }
       if (!location.hash.startsWith('#/login')) location.hash = '#/login'
       return Promise.reject(new Error(data.text))
     }
