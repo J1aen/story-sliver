@@ -3,10 +3,13 @@ import RoleBadge from './RoleBadge.vue'
 
 defineProps({ fragment: Object, showActions: Boolean })
 defineEmits(['like', 'delete', 'hide', 'unhide'])
+
+// 长碎片阈值：超过这个字数就独占一行（瀑布流里避免又细又长）
+const LONG_THRESHOLD = 200
 </script>
 
 <template>
-  <article class="card fragment-card">
+  <article class="card fragment-card" :class="{ wide: fragment.content.length >= LONG_THRESHOLD }">
     <div class="meta">
       <!-- 非匿名且作者有已审核头像：显示小圆头像 -->
       <img v-if="fragment.authorAvatar" :src="fragment.authorAvatar" class="author-avatar" alt="" />

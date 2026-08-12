@@ -138,10 +138,12 @@ h1 { font-size: 26px; }
 .more-wrap { text-align: center; margin: 20px 0; }
 
 /* ===== 瀑布流布局（方案 C） ===== */
-.fragment-masonry { column-count: 3; column-gap: 14px; }
-.fragment-masonry .fragment-card { break-inside: avoid; margin-bottom: 14px; }
-@media (max-width: 900px) { .fragment-masonry { column-count: 2; } }
-@media (max-width: 560px) { .fragment-masonry { column-count: 1; } }
+.fragment-masonry { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; grid-auto-flow: dense; align-items: start; }
+.fragment-masonry .fragment-card { margin-bottom: 0; }
+/* 长碎片独占一整行：横跨所有列，避免又细又长 */
+.fragment-masonry .fragment-card.wide { grid-column: 1 / -1; }
+@media (max-width: 900px) { .fragment-masonry { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .fragment-masonry { grid-template-columns: 1fr; } }
 
 /* ===== 身份铭牌（站长 / 管理员 不同样式） ===== */
 .badge { display: inline-block; font-size: 12px; line-height: 1; padding: 3px 7px; border-radius: 8px; margin-left: 4px; }
