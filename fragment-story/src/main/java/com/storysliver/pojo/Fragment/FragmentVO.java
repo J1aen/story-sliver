@@ -1,12 +1,19 @@
 package com.storysliver.pojo.Fragment;
 
+import lombok.Data;
+
 /**
- * 碎片展示对象（Task 7，待实现）。
- * 字段：
- *   - id、content、likeCount、isAnonymous、status
- *   - authorName 展示名（isAnonymous==1 时显示「匿名用户」，否则显示昵称）
- *   - likedByMe 当前用户是否已赞、createdAt 格式化时间
+ * 碎片展示对象：返回给前端的碎片信息。
  * 为什么用 VO 而不是直接返回实体：不把 user_id 等敏感字段暴露给前端，还能拼好展示名。
  */
+@Data
 public class FragmentVO {
+    private Long id;//主键
+    private String content;//碎片内容
+    private Integer likeCount;//点赞数
+    private Integer isAnonymous;//是否匿名：0显示昵称 1显示「匿名用户」
+    private Integer status;//生命周期：0待审核 1已发布 2已隐藏
+    private String authorName;//展示名（匿名=「匿名用户」，实名=昵称）
+    private Boolean likedByMe;//当前登录用户是否已赞（列表接口填充）
+    private String createdAt;//格式化后的创建时间（yyyy-MM-dd HH:mm:ss）
 }

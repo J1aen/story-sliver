@@ -30,7 +30,7 @@ public class FragmentRateLimiter {
         long now = System.currentTimeMillis();
 //       获取用户上次发布时间
         Long prev = lastSubmit.putIfAbsent(userId,now);
-//      如果是空的，说明是第一次发布 直接方形
+//      如果是空的，说明是第一次发布 直接放行
         if (prev == null){
             return true;
         }
