@@ -7,6 +7,7 @@ import com.storysliver.pojo.Result;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
@@ -67,9 +68,14 @@ public class AuthInterceptor implements HandlerInterceptor {
         // 封禁账号：即使持有旧 token 也拒绝所有登录态请求（防封禁后继续使用）
         User user = userMapper.selectById(userId);
         if (user != null && user.getStatus() == User.STATUS_BANNED) {
-            UserContext.clear();
-            writeJson(response, 403, Result.error(403, "账号已被封禁，请联系站长"));
-            return false;
+            // 已到期的封禁自动解封，否则拒绝所有登录态请求
+            if (user.getBanExpiresAt() != null && !user.getBanExpiresAt().isAfter(LocalDateTime.now())) {
+                userMapper.unban(user.getId());
+            } else {
+                UserContext.clear();
+                writeJson(response, 403, Result.error(403, "账号已被封禁，请联系站长"));
+                return false;
+            }
         }
 
         // 方法上标了 @RequireRole 才做角色校验；没标表示登录即可

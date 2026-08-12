@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -210,7 +211,7 @@ public class AdminServiceImpl implements AdminService {
      * 为什么封禁用 status 而不是删号：封禁可解封（站长），删号不可逆。
      */
     @Override
-    public void banUser(Integer operatorRole, Long userId) {
+    public void banUser(Integer operatorRole, Long userId, Integer days) {
         if (operatorRole == null || (operatorRole != User.ROLE_ADMIN && operatorRole != User.ROLE_OWNER)) {
             throw new BusinessException(ResultCode.FORBIDDEN);
         }
@@ -221,10 +222,12 @@ public class AdminServiceImpl implements AdminService {
         if (target.getRole() == User.ROLE_OWNER) {
             throw new BusinessException(ResultCode.CANNOT_MODIFY_OWNER);
         }
-        if (target.getStatus() != null && target.getStatus() == User.STATUS_BANNED) {
+        if (isBanned(target)) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "该账号已被封禁");
         }
-        userMapper.updateStatus(userId, User.STATUS_BANNED);
+        // days 为空或 ≤0 → 永久封禁（到期时间为 null）；否则 now + days
+        LocalDateTime expiresAt = (days == null || days <= 0) ? null : LocalDateTime.now().plusDays(days);
+        userMapper.ban(userId, expiresAt);
     }
 
     /** 解除封禁：仅站长能操作（普通管理员无权解封，防止互解封） */
@@ -240,7 +243,15 @@ public class AdminServiceImpl implements AdminService {
         if (target.getStatus() == null || target.getStatus() != User.STATUS_BANNED) {
             throw new BusinessException(ResultCode.BAD_REQUEST, "该账号未被封禁");
         }
-        userMapper.updateStatus(userId, User.STATUS_NORMAL);
+        userMapper.unban(userId);
+    }
+
+    /** 是否处于封禁中：status=1 且（永久封禁 或 还没到期） */
+    private boolean isBanned(User user) {
+        if (user.getStatus() == null || user.getStatus() != User.STATUS_BANNED) {
+            return false;
+        }
+        return user.getBanExpiresAt() == null || user.getBanExpiresAt().isAfter(LocalDateTime.now());
     }
 
     /** 校验碎片存在：审核 / 删除的前置条件 */

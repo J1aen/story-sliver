@@ -13,7 +13,7 @@ export const rejectAvatar = (userId, reason) => request.post(`/admin/avatars/${u
 // 用户管理（仅站长）
 export const getUsers = (pageNum, pageSize) => request.get('/admin/users', { params: { pageNum, pageSize } })
 export const updateUserRole = (id, role) => request.put(`/admin/users/${id}/role`, { role })
-export const banUser = (id) => request.post(`/admin/users/${id}/ban`)
+export const banUser = (id, days) => request.post(`/admin/users/${id}/ban`, { days })
 export const unbanUser = (id) => request.post(`/admin/users/${id}/unban`)
 
 // 系统配置（仅站长）

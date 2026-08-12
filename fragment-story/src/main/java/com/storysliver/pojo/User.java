@@ -31,6 +31,7 @@ public class User {
     private String avatar;//当前头像 URL（已审核通过，可为 null）
     private String avatarPending;//待审核头像 URL（上传后、审核前；通过后转正到 avatar）
     private String avatarRejectReason;//头像被拒绝的原因（拒绝时写入，重新上传或通过后清空）
+    private LocalDateTime banExpiresAt;//封禁到期时间；null 且 status=1 表示永久封禁
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;//创建时间
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

@@ -23,6 +23,9 @@ const users = ref([])
 const newCode = ref('')
 const rejectReason = ref('')
 const rejectingId = ref(null)// 当前正在填拒绝原因的用户 id（null=没有展开）
+const banTarget = ref(null)// 当前封禁弹窗的目标：{ type: 'fragment'|'user', id, userId, name }
+const banPermanent = ref(false)
+const banDays = ref('')
 const message = ref('')
 const confirmTarget = ref(null)
 
@@ -76,27 +79,52 @@ async function onSaveCode() {
   catch (e) { message.value = e.message }
 }
 async function onConfirmDelete() {
-  const t = confirmTarget.value
   try {
-    if (t.type === 'ban') {
-      await adminDeleteFragment(t.id)
-      await banUser(t.userId)
-      message.value = `已删除碎片并封禁 ${t.name || '该用户'}`
-    } else {
-      await adminDeleteFragment(t.id)
-    }
+    await adminDeleteFragment(confirmTarget.value.id)
     confirmTarget.value = null
     await loadFragments(tab.value === 'review' ? 0 : 1)
   } catch (e) { message.value = e.message }
 }
 
-async function onBanUser(u) {
-  try { await banUser(u.id); message.value = `已封禁 ${u.nickname || u.username}`; await loadUsers() }
-  catch (e) { message.value = e.message }
-}
 async function onUnbanUser(u) {
   try { await unbanUser(u.id); message.value = `已解封 ${u.nickname || u.username}`; await loadUsers() }
   catch (e) { message.value = e.message }
+}
+
+// 打开封禁弹窗（删除并封禁 / 用户管理封禁共用）
+function openBan(target) {
+  banTarget.value = target
+  banPermanent.value = false
+  banDays.value = ''
+}
+
+function cancelBan() {
+  banTarget.value = null
+}
+
+async function submitBan() {
+  const t = banTarget.value
+  let days = null
+  if (!banPermanent.value) {
+    days = parseInt(banDays.value, 10)
+    if (!days || days <= 0) {
+      message.value = '请填写封禁天数（至少 1 天），或勾选永久封禁'
+      return
+    }
+  }
+  try {
+    if (t.type === 'fragment') {
+      await adminDeleteFragment(t.id)
+      await banUser(t.userId, days)
+      message.value = `已删除碎片并封禁 ${t.name || '该用户'}` + (banPermanent.value ? '（永久）' : `（${days} 天）`)
+      await loadFragments(tab.value === 'review' ? 0 : 1)
+    } else {
+      await banUser(t.id, days)
+      message.value = `已封禁 ${t.name || '该用户'}` + (banPermanent.value ? '（永久）' : `（${days} 天）`)
+      await loadUsers()
+    }
+    cancelBan()
+  } catch (e) { message.value = e.message }
 }
 
 function switchTab(t) {
@@ -136,7 +164,7 @@ onMounted(() => loadFragments(0))
         <div class="actions">
           <button v-if="f.status === 0" class="btn small primary" @click="onApprove(f)">通过</button>
           <button class="btn small danger" @click="confirmTarget = { id: f.id }">删除</button>
-          <button class="btn small danger" @click="confirmTarget = { type: 'ban', id: f.id, userId: f.userId, name: f.authorName }">删除并封禁</button>
+          <button class="btn small danger" @click="openBan({ type: 'fragment', id: f.id, userId: f.userId, name: f.authorName })">删除并封禁</button>
         </div>
       </article>
     </template>
@@ -180,7 +208,7 @@ onMounted(() => loadFragments(0))
             <button v-else-if="u.role === 1" class="btn small danger" @click="onRole(u, 0)">撤销管理员</button>
             <span v-else>—</span>
             <button v-if="u.status === 1" class="btn small primary" @click="onUnbanUser(u)">解封</button>
-            <button v-else-if="u.role !== 2" class="btn small danger" @click="onBanUser(u)">封禁</button>
+            <button v-else-if="u.role !== 2" class="btn small danger" @click="openBan({ type: 'user', id: u.id, name: u.nickname || u.username })">封禁</button>
           </td>
         </tr>
       </table>
@@ -197,11 +225,24 @@ onMounted(() => loadFragments(0))
 
     <ConfirmDialog
       :show="!!confirmTarget"
-      :title="confirmTarget?.type === 'ban' ? '删除并封禁' : '删除碎片'"
-      :message="confirmTarget?.type === 'ban' ? '将删除该碎片并封禁发布者账号，封禁后对方无法登录（仅站长可解封），确定吗？' : '删除后无法撤回，确定删除吗？'"
-      :confirm-text="confirmTarget?.type === 'ban' ? '确认封禁' : '确认删除'"
+      title="删除碎片"
+      message="删除后无法撤回，确定删除吗？"
       @cancel="confirmTarget = null"
       @confirm="onConfirmDelete"
     />
+
+    <!-- 封禁弹窗：自定义天数或永久 -->
+    <div v-if="banTarget" class="modal-mask" @click.self="cancelBan">
+      <div class="modal">
+        <h3>封禁{{ banTarget.type === 'fragment' ? '并删除该碎片' : '账号' }}</h3>
+        <p class="subtitle">封禁 {{ banTarget.name }}{{ banTarget.type === 'fragment' ? '，并删除该碎片' : '' }}</p>
+        <label class="checkbox"><input type="checkbox" v-model="banPermanent" /> 永久封禁</label>
+        <input v-if="!banPermanent" v-model="banDays" type="number" min="1" class="input" placeholder="封禁天数（至少 1 天）" />
+        <div class="modal-actions">
+          <button class="btn" @click="cancelBan">取消</button>
+          <button class="btn danger" @click="submitBan">确认封禁</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

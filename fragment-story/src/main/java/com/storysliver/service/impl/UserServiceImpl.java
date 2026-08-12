@@ -23,6 +23,7 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 /**
  * 用户服务实现：注册 / 登录的核心业务逻辑。
@@ -130,9 +131,13 @@ public class UserServiceImpl implements UserService {
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
             throw new BusinessException(ResultCode.LOGIN_FAILED);
         }
-        // 封禁账号禁止登录，并给出明确提示
+        // 封禁账号禁止登录，并给出明确提示；已到期的封禁自动解封
         if (user.getStatus() != null && user.getStatus() == User.STATUS_BANNED) {
-            throw new BusinessException(ResultCode.ACCOUNT_BANNED);
+            if (user.getBanExpiresAt() != null && !user.getBanExpiresAt().isAfter(LocalDateTime.now())) {
+                userMapper.unban(user.getId());// 封禁到期，自动解封
+            } else {
+                throw new BusinessException(ResultCode.ACCOUNT_BANNED);
+            }
         }
         return jwtUtil.generateToken(user.getId(), user.getRole());
     }
