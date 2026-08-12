@@ -24,12 +24,21 @@ request.interceptors.response.use(
     return body.data
   },
   (err) => {
-    if (err.response?.status === 401) {
+    const status = err.response?.status
+    const data = err.response?.data || {}
+    // 账号被封禁：弹出提示并退出登录（登录态中的封禁立即生效）
+    if (status === 403 && data.text && data.text.includes('封禁')) {
+      userStore.logout()
+      alert(data.text)
+      if (!location.hash.startsWith('#/login')) location.hash = '#/login'
+      return Promise.reject(new Error(data.text))
+    }
+    if (status === 401) {
       userStore.logout()
       if (!location.hash.startsWith('#/login')) location.hash = '#/login'
     }
     // 后端 Result 的提示字段叫 text（照 sims 风格），不是 message
-    const msg = err.response?.data?.text || err.response?.data?.message || err.message || '网络错误'
+    const msg = data.text || data.message || err.message || '网络错误'
     return Promise.reject(new Error(msg))
   }
 )
