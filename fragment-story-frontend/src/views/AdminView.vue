@@ -204,11 +204,13 @@ onMounted(() => loadFragments(0))
           <td>{{ u.role === 2 ? '站长' : u.role === 1 ? '管理员' : '普通' }}</td>
           <td>{{ u.status === 1 ? '封禁中' : '正常' }}</td>
           <td>
-            <button v-if="u.role === 0" class="btn small" @click="onRole(u, 1)">设为管理员</button>
-            <button v-else-if="u.role === 1" class="btn small danger" @click="onRole(u, 0)">撤销管理员</button>
-            <span v-else>—</span>
-            <button v-if="u.status === 1" class="btn small primary" @click="onUnbanUser(u)">解封</button>
-            <button v-else-if="u.role !== 2" class="btn small danger" @click="openBan({ type: 'user', id: u.id, name: u.nickname || u.username })">封禁</button>
+            <div class="row-actions">
+              <button v-if="u.role === 0" class="btn xs" @click="onRole(u, 1)">设为管理员</button>
+              <button v-else-if="u.role === 1" class="btn xs danger" @click="onRole(u, 0)">撤销管理员</button>
+              <span v-else class="row-dash">—</span>
+              <button v-if="u.status === 1" class="btn xs primary" @click="onUnbanUser(u)">解封</button>
+              <button v-else-if="u.role !== 2" class="btn xs danger" @click="openBan({ type: 'user', id: u.id, name: u.nickname || u.username })">封禁</button>
+            </div>
           </td>
         </tr>
       </table>

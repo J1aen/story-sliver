@@ -130,6 +130,7 @@ h1 { font-size: 26px; }
 .like-btn { background: none; border: none; cursor: pointer; color: #b48a6a; font-size: 14px; padding: 4px 8px; }
 .like-btn.liked { color: #c96f4a; }
 .btn.small { padding: 3px 10px; font-size: 13px; letter-spacing: 0; }
+.btn.xs { padding: 2px 8px; font-size: 12px; letter-spacing: 0; line-height: 1.6; }
 .btn.danger { background: #f3e2dd; border-color: #d9b3aa; color: #a3483a; }
 .tag { font-size: 12px; padding: 1px 8px; border-radius: 10px; background: #eee4cf; color: #6d5f47; }
 .tag.pending { background: #f3e2b8; color: #8a6a1f; }
@@ -199,3 +200,5 @@ h1 { font-size: 26px; }
 .table { width: 100%; border-collapse: collapse; background: #fbf8f1; }
 .table th, .table td { border: 1px solid #eadfc8; padding: 8px 10px; font-size: 14px; text-align: left; }
 .table th { background: #f1ead9; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.row-dash { color: #b8a98b; }
