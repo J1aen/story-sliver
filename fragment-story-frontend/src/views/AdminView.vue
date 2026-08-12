@@ -27,6 +27,7 @@ const banTarget = ref(null)// 当前封禁弹窗的目标：{ type: 'fragment'|'
 const banPermanent = ref(false)
 const banDays = ref('')
 const banReason = ref('')
+const banError = ref('')// 封禁弹窗内的错误提示（避免被遮罩挡住看不到）
 const message = ref('')
 const confirmTarget = ref(null)
 const userStatusFilter = ref('all')// 用户筛选：all 全部 / normal 正常 / temp 暂时封禁 / perm 永久封禁
@@ -107,6 +108,7 @@ function openBan(target) {
   banPermanent.value = false
   banDays.value = ''
   banReason.value = ''
+  banError.value = ''
 }
 
 function cancelBan() {
@@ -117,17 +119,18 @@ async function submitBan() {
   const t = banTarget.value
   const reason = banReason.value.trim()
   if (!reason) {
-    message.value = '封禁理由不能为空'
+    banError.value = '封禁理由不能为空'
     return
   }
   let days = null
   if (!banPermanent.value) {
     days = parseInt(banDays.value, 10)
     if (!days || days <= 0) {
-      message.value = '请填写封禁天数（至少 1 天），或勾选永久封禁'
+      banError.value = '请填写封禁天数（至少 1 天），或勾选永久封禁'
       return
     }
   }
+  banError.value = ''
   try {
     if (t.type === 'fragment') {
       await adminDeleteFragment(t.id)
@@ -140,7 +143,7 @@ async function submitBan() {
       await loadUsers()
     }
     cancelBan()
-  } catch (e) { message.value = e.message }
+  } catch (e) { banError.value = e.message }
 }
 
 function switchTab(t) {
@@ -268,6 +271,7 @@ onMounted(() => loadFragments(0))
         <input v-model="banReason" class="input" placeholder="封禁理由（必填，被封禁用户可见）" />
         <label class="checkbox"><input type="checkbox" v-model="banPermanent" /> 永久封禁</label>
         <input v-if="!banPermanent" v-model="banDays" type="number" min="1" class="input" placeholder="封禁天数（至少 1 天）" />
+        <p v-if="banError" class="error">{{ banError }}</p>
         <div class="modal-actions">
           <button class="btn" @click="cancelBan">取消</button>
           <button class="btn danger" @click="submitBan">确认封禁</button>
