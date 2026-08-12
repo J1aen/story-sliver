@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
   adminDeleteFragment,
   approveAvatar,
@@ -29,6 +29,15 @@ const banDays = ref('')
 const banReason = ref('')
 const message = ref('')
 const confirmTarget = ref(null)
+const userStatusFilter = ref('all')// 用户筛选：all 全部 / normal 正常 / temp 暂时封禁 / perm 永久封禁
+
+// 按状态筛选用户（保持服务端分页数据，客户端过滤）
+const filteredUsers = computed(() => {
+  if (userStatusFilter.value === 'all') return users.value
+  if (userStatusFilter.value === 'normal') return users.value.filter((u) => u.status === 0)
+  if (userStatusFilter.value === 'temp') return users.value.filter((u) => u.status === 1 && u.banExpiresAt)
+  return users.value.filter((u) => u.status === 1 && !u.banExpiresAt)// 永久封禁
+})
 
 async function loadFragments(status) {
   try { const d = await getAdminFragments(status, 1, 50); fragments.value = d.list }
@@ -204,9 +213,15 @@ onMounted(() => loadFragments(0))
 
     <!-- 用户管理（仅站长） -->
     <template v-if="tab === 'users'">
+      <nav class="tabs user-filters">
+        <button :class="{ active: userStatusFilter === 'all' }" @click="userStatusFilter = 'all'">全部</button>
+        <button :class="{ active: userStatusFilter === 'normal' }" @click="userStatusFilter = 'normal'">正常</button>
+        <button :class="{ active: userStatusFilter === 'temp' }" @click="userStatusFilter = 'temp'">暂时封禁</button>
+        <button :class="{ active: userStatusFilter === 'perm' }" @click="userStatusFilter = 'perm'">永久封禁</button>
+      </nav>
       <table class="table">
         <tr><th>ID</th><th>用户名</th><th>昵称</th><th>角色</th><th>状态</th><th>操作</th></tr>
-        <tr v-for="u in users" :key="u.id">
+        <tr v-for="u in filteredUsers" :key="u.id">
           <td>{{ u.id }}</td><td>{{ u.username }}</td><td>{{ u.nickname }}</td>
           <td>{{ u.role === 2 ? '站长' : u.role === 1 ? '管理员' : '普通' }}</td>
           <td>
