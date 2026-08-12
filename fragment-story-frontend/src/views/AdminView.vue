@@ -20,6 +20,7 @@ const avatars = ref([])
 const users = ref([])
 const newCode = ref('')
 const rejectReason = ref('')
+const rejectingId = ref(null)// 当前正在填拒绝原因的用户 id（null=没有展开）
 const message = ref('')
 const confirmTarget = ref(null)
 
@@ -46,10 +47,24 @@ async function onAvatarApprove(u) {
 async function onAvatarReject(u) {
   try {
     await rejectAvatar(u.id, rejectReason.value.trim() || null)
-    message.value = rejectReason.value.trim() ? `已拒绝 ${u.nickname || u.username}（原因：${rejectReason.value.trim()}）` : `已拒绝 ${u.nickname || u.username}`
+    const reason = rejectReason.value.trim() || '头像不符合要求'
+    message.value = `已拒绝 ${u.nickname || u.username}（原因：${reason}）`
+    rejectingId.value = null
     rejectReason.value = ''
     await loadAvatars()
   } catch (e) { message.value = e.message }
+}
+
+// 点击「拒绝」：展开原因输入框
+function startReject(u) {
+  rejectingId.value = u.id
+  rejectReason.value = ''
+}
+
+// 点击「取消」：收起输入框，回到通过/拒绝
+function cancelReject() {
+  rejectingId.value = null
+  rejectReason.value = ''
 }
 async function onRole(u, role) {
   try { await updateUserRole(u.id, role); await loadUsers() } catch (e) { message.value = e.message }
@@ -109,7 +124,6 @@ onMounted(() => loadFragments(0))
 
     <!-- 头像审核队列 -->
     <template v-if="tab === 'avatars'">
-      <input v-model="rejectReason" class="input" placeholder="拒绝原因（可选，用户端会看到）" />
       <p v-if="avatars.length === 0" class="empty">没有待审核头像</p>
       <article v-for="u in avatars" :key="u.id" class="card">
         <div class="meta">
@@ -118,8 +132,18 @@ onMounted(() => loadFragments(0))
           <span class="tag pending">待审核</span>
         </div>
         <div class="actions">
-          <button class="btn small primary" @click="onAvatarApprove(u)">通过</button>
-          <button class="btn small danger" @click="onAvatarReject(u)">拒绝</button>
+          <template v-if="rejectingId !== u.id">
+            <button class="btn small primary" @click="onAvatarApprove(u)">通过</button>
+            <button class="btn small danger" @click="startReject(u)">拒绝</button>
+          </template>
+        </div>
+        <!-- 点击拒绝后展开的输入区（带展开动画） -->
+        <div v-if="rejectingId === u.id" class="reject-panel">
+          <input v-model="rejectReason" class="input" placeholder="拒绝原因（不填默认：头像不符合要求）" />
+          <div class="actions">
+            <button class="btn small" @click="cancelReject">取消</button>
+            <button class="btn small danger" @click="onAvatarReject(u)">提交</button>
+          </div>
         </div>
       </article>
     </template>

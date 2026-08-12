@@ -160,6 +160,7 @@ h1 { font-size: 26px; }
 .profile-card .subtitle { margin: 0 0 12px; }
 .pending-tip { display: block; width: fit-content; margin: 12px auto 0; color: #8a6a1f; background: #f3e2b8; padding: 2px 10px; border-radius: 10px; font-size: 13px; }
 .reject-tip { display: block; width: fit-content; margin: 12px auto 0; color: #a3483a; background: #f3e2dd; padding: 2px 10px; border-radius: 10px; font-size: 13px; }
+.reject-dismiss { margin-left: 8px; background: none; border: none; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; font-size: 12px; }
 .avatar-upload { margin: 10px 0; }
 .profile-stats { display: flex; justify-content: space-around; margin-top: 20px; padding-top: 16px; border-top: 1px solid #eadfc8; }
 .profile-stats div { display: flex; flex-direction: column; }
@@ -176,6 +177,13 @@ h1 { font-size: 26px; }
 .crop-circle { position: absolute; border: 2px dashed rgba(201, 145, 90, 0.9); border-radius: 50%; pointer-events: none; }
 .crop-circle::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.08); }
 .crop-handle { position: absolute; right: -8px; bottom: -8px; width: 16px; height: 16px; border-radius: 50%; background: #c9915a; border: 2px solid #fff; cursor: nwse-resize; pointer-events: auto; }
+
+/* 拒绝原因输入区展开动画 */
+.reject-panel { margin-top: 10px; padding-top: 10px; border-top: 1px dashed light-dark(#e6dcc4, #3a3329); overflow: hidden; animation: rejectSlideDown 0.25s ease; }
+@keyframes rejectSlideDown {
+  from { max-height: 0; opacity: 0; }
+  to { max-height: 140px; opacity: 1; }
+}
 
 /* ===== 确认弹窗 ===== */
 .modal-mask { position: fixed; inset: 0; background: rgba(74, 66, 56, 0.35); display: flex; align-items: center; justify-content: center; z-index: 10; }
