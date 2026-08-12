@@ -12,7 +12,14 @@ const uploading = ref(false)
 const message = ref('')
 const showCrop = ref(false)
 const cropUrl = ref('')
-const dismissReject = ref(false)// 「知道了」关闭拒绝提示（重新进入页面后会再出现，直到重新上传/通过）
+// 已关闭的拒绝原因（持久化）：关闭后切页不再出现；原因变化或重新上传后会重新提醒
+const dismissedReason = ref(localStorage.getItem('dismissed-avatar-reject') || '')
+
+function dismissRejectNotice() {
+  const reason = userStore.user?.avatarRejectReason || ''
+  dismissedReason.value = reason
+  localStorage.setItem('dismissed-avatar-reject', reason)
+}
 
 // 选择图片 → 打开圆形裁剪框
 async function onFileChange(e) {
@@ -42,6 +49,9 @@ async function onCropped(blob) {
   try {
     const data = await uploadAvatar(blob)
     message.value = data.text || '头像已提交，等待管理员审核'
+    // 重新上传后清除已关闭记录：如果这次又被拒，会重新提醒
+    dismissedReason.value = ''
+    localStorage.removeItem('dismissed-avatar-reject')
     const me = await getMe()
     userStore.setUser(me)
   } catch (err) {
@@ -89,9 +99,12 @@ onMounted(async () => {
       <!-- 有待审核头像时提示「审核中」 -->
       <p v-if="userStore.user?.avatarPending" class="pending-tip">头像审核中…</p>
       <!-- 头像被拒绝时显示原因（重新上传或通过后自动消失） -->
-      <div v-if="userStore.user?.avatarRejectReason && !userStore.user?.avatarPending && !dismissReject" class="reject-tip">
+      <div
+        v-if="userStore.user?.avatarRejectReason && !userStore.user?.avatarPending && dismissedReason !== userStore.user.avatarRejectReason"
+        class="reject-tip"
+      >
         <span>头像被拒绝：{{ userStore.user.avatarRejectReason }}</span>
-        <button class="reject-dismiss" @click="dismissReject = true">知道了</button>
+        <button class="reject-dismiss" @click="dismissRejectNotice">知道了</button>
       </div>
       <p v-if="message" class="error">{{ message }}</p>
       <div class="avatar-upload">
