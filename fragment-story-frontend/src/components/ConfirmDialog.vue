@@ -1,6 +1,7 @@
 <script setup>
 defineProps({ show: Boolean, title: String, message: String })
-defineEmits(['confirm', 'cancel'])
+// 必须用 const emit 接收，模板里的 emit() 才能用（否则点击按钮报「emit 未定义」）
+const emit = defineEmits(['confirm', 'cancel'])
 </script>
 
 <template>
