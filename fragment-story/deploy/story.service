@@ -9,6 +9,7 @@ ExecStart=/usr/bin/java -jar /home/ubuntu/story/fragment-story-0.0.1-SNAPSHOT.ja
 Restart=always
 RestartSec=5
 # 用环境变量覆盖配置，避免改动 jar 内的 application.properties
+Environment=SPRING_DATASOURCE_USERNAME=story
 Environment=SPRING_DATASOURCE_PASSWORD=请改成数据库密码
 Environment=APP_UPLOAD_AVATAR_DIR=/home/ubuntu/story/headimage
 Environment=APP_JWT_SECRET=请改成32位以上随机字符串
