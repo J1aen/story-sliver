@@ -46,6 +46,7 @@ async function onAvatarApprove(u) {
 async function onAvatarReject(u) {
   try {
     await rejectAvatar(u.id, rejectReason.value.trim() || null)
+    message.value = rejectReason.value.trim() ? `已拒绝 ${u.nickname || u.username}（原因：${rejectReason.value.trim()}）` : `已拒绝 ${u.nickname || u.username}`
     rejectReason.value = ''
     await loadAvatars()
   } catch (e) { message.value = e.message }

@@ -53,6 +53,13 @@ async function onCropped(blob) {
 
 onMounted(async () => {
   try {
+    // 进入个人主页就重新同步用户信息：头像被拒/通过/角色变化立即反映（SPA 切页不会自动刷新）
+    const me = await getMe()
+    userStore.setUser(me)
+  } catch (e) {
+    // token 失效交给拦截器处理
+  }
+  try {
     const list = await getMyFragments()
     stats.value = {
       total: list.length,
