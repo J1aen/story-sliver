@@ -83,8 +83,15 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ResultCode.PASSWORD_TOO_WEAK);
         }
 
+        // 动作3.5（Task 29）：用户名格式——只允许字母/数字/下划线（禁止汉字等），已注册老账号不受影响。
+        // 为什么先 trim 再校验：用户名首尾带空格能通过长度校验，但登录时对不上，容易造成「注册了登不上」的坑。
+        String username = request.getUsername() == null ? "" : request.getUsername().trim();
+        if (!username.matches("^[A-Za-z0-9_]{4,20}$")) {
+            throw new BusinessException(ResultCode.USERNAME_INVALID);
+        }
+
         // 动作4：用户名唯一性。selectByUsername 查得到说明被占用了
-        if (userMapper.selectByUsername(request.getUsername()) != null) {
+        if (userMapper.selectByUsername(username) != null) {
             throw new BusinessException(ResultCode.USERNAME_TAKEN);
         }
 
@@ -106,7 +113,7 @@ public class UserServiceImpl implements UserService {
 
         // 动作6：组装用户并加密密码。数据库里永远只存 BCrypt 哈希，不存明文
         User user = new User();
-        user.setUsername(request.getUsername().trim());// 用户名去首尾空格，避免误输空格导致登录对不上
+        user.setUsername(username);// 用户名已在动作3.5 trim 过
         user.setNickname(request.getNickname().trim());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(role);
@@ -187,7 +194,11 @@ public class UserServiceImpl implements UserService {
             if (src == null) {
                 throw new BusinessException(ResultCode.BAD_REQUEST, "无法解析图片");
             }
-            ImageIO.write(cropToSquare(src, AVATAR_SIZE), "png", target);
+            // Task 19：最小尺寸校验——太小的图片放大后会糊，直接拒绝
+            if (src.getWidth() < 64 || src.getHeight() < 64) {
+                throw new BusinessException(ResultCode.AVATAR_TOO_SMALL);
+            }
+            ImageIO.write(cropToFilledSquare(src, AVATAR_SIZE), "png", target);
         } catch (IOException e) {
             throw new BusinessException(ResultCode.INTERNAL_ERROR, "头像保存失败");
         }
@@ -195,6 +206,55 @@ public class UserServiceImpl implements UserService {
         String url = "/uploads/" + fileName;
         userMapper.updateAvatarPending(userId, url);
         return url;
+    }
+
+    /**
+     * Task 19：把图片「内容」居中裁成正方形并缩放到指定尺寸。
+     * 为什么不用原来的 cropToSquare：旧实现直接取整张图中心正方形，
+     * 如果图片四周是透明边距（前端裁剪时圆形画小了），内容会很小，显示出来就是「特别小的头像」。
+     * 现在先扫描不透明像素找到内容边界，裁掉透明空边再取正方形，保证头像占满画布。
+     */
+    private BufferedImage cropToFilledSquare(BufferedImage src, int size) {
+        int w = src.getWidth();
+        int h = src.getHeight();
+        // 1. 扫描 alpha 通道，找出「可见内容」的边界（alpha > 8 视为可见，忽略抗锯齿的浅透明像素）
+        int minX = w, minY = h, maxX = -1, maxY = -1;
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int alpha = (src.getRGB(x, y) >>> 24) & 0xFF;
+                if (alpha > 8) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+        // 全透明（理论上不会发生）：退回整张图中心裁剪，保证不抛异常
+        if (maxX < 0) {
+            return cropToSquare(src, size);
+        }
+        // 2. 边界外扩 4px，避免圆形边缘被切得太紧
+        int pad = 4;
+        minX = Math.max(0, minX - pad);
+        minY = Math.max(0, minY - pad);
+        maxX = Math.min(w - 1, maxX + pad);
+        maxY = Math.min(h - 1, maxY + pad);
+        // 3. 以内容中心取正方形（边长取宽高的较大值），再缩放
+        int side = Math.max(maxX - minX + 1, maxY - minY + 1);
+        int cx = (minX + maxX) / 2;
+        int cy = (minY + maxY) / 2;
+        int x0 = Math.max(0, Math.min(cx - side / 2, w - side));
+        int y0 = Math.max(0, Math.min(cy - side / 2, h - side));
+        BufferedImage crop = src.getSubimage(x0, y0, side, side);
+        // 4. 缩放输出，保持透明通道
+        BufferedImage out = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = out.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(crop, 0, 0, size, size, null);
+        g.dispose();
+        return out;
     }
 
     /** 把任意图片中心裁剪成正方形并缩放到指定尺寸（保留透明通道，供前端圆形头像使用） */

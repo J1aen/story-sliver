@@ -5,11 +5,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
+import com.storysliver.mapper.UserMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * 认证拦截器单元测试。
@@ -19,6 +22,7 @@ class AuthInterceptorTest {
 
     private AuthInterceptor interceptor;
     private JwtUtil jwtUtil;
+    private UserMapper userMapper;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
 
@@ -33,6 +37,9 @@ class AuthInterceptorTest {
         interceptor = new AuthInterceptor();
         // @Autowired 字段注入，单测里用反射注入 mock 好的 JwtUtil
         ReflectionTestUtils.setField(interceptor, "jwtUtil", jwtUtil);
+        // 封禁校验会查 userMapper，单测里 mock 掉（返回 null 表示用户不存在/未封禁）
+        userMapper = mock(UserMapper.class);
+        ReflectionTestUtils.setField(interceptor, "userMapper", userMapper);
 
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
@@ -42,6 +49,7 @@ class AuthInterceptorTest {
     @Test
     void validTokenPassesAndSetsContext() throws Exception {
         request.addHeader("Authorization", "Bearer " + jwtUtil.generateToken(7L, 2));
+        when(userMapper.selectById(7L)).thenReturn(null);
 
         assertTrue(interceptor.preHandle(request, response, new Object()));
         assertEquals(7L, UserContext.getUserId());

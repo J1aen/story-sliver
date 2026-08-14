@@ -87,7 +87,45 @@ function confirm() {
   ctx.beginPath()
   ctx.arc(circle.value.cx * k, circle.value.cy * k, circle.value.r * k, 0, Math.PI * 2)
   ctx.fill()
-  canvas.toBlob((blob) => {
+  // Task 19：自动贴合——把「圆形里的可见内容」紧贴到画布边缘再放大铺满。
+  // 为什么：以前用户不调整圆形大小时，导出图会有大片透明边距，显示出来就是「特别小的头像」；
+  // 现在按透明像素的边界裁掉空边并放大，无论圆形画多大，头像都会占满 512x512。
+  const imgData = ctx.getImageData(0, 0, out, out).data
+  let minX = out, minY = out, maxX = -1, maxY = -1
+  for (let y = 0; y < out; y++) {
+    for (let x = 0; x < out; x++) {
+      // alpha 通道 > 8 视为可见内容（抗锯齿边缘的浅透明像素忽略）
+      if (imgData[(y * out + x) * 4 + 3] > 8) {
+        if (x < minX) minX = x
+        if (x > maxX) maxX = x
+        if (y < minY) minY = y
+        if (y > maxY) maxY = y
+      }
+    }
+  }
+  // 全透明（理论上不会发生）：直接导出原图
+  if (maxX < 0) {
+    canvas.toBlob((blob) => blob && emit('cropped', blob), 'image/png')
+    return
+  }
+  // 留 8px 边距，避免圆形边缘被切得太紧
+  const pad = 8
+  minX = Math.max(0, minX - pad)
+  minY = Math.max(0, minY - pad)
+  maxX = Math.min(out - 1, maxX + pad)
+  maxY = Math.min(out - 1, maxY + pad)
+  // 以内容中心取正方形区域，再放大铺满 512x512
+  const side = Math.max(maxX - minX + 1, maxY - minY + 1)
+  const cx = Math.round((minX + maxX) / 2)
+  const cy = Math.round((minY + maxY) / 2)
+  const bx = Math.max(0, Math.min(cx - side / 2, out - side))
+  const by = Math.max(0, Math.min(cy - side / 2, out - side))
+  const finalCanvas = document.createElement('canvas')
+  finalCanvas.width = out
+  finalCanvas.height = out
+  const fctx = finalCanvas.getContext('2d')
+  fctx.drawImage(canvas, bx, by, side, side, 0, 0, out, out)
+  finalCanvas.toBlob((blob) => {
     if (blob) emit('cropped', blob)
   }, 'image/png')
 }
