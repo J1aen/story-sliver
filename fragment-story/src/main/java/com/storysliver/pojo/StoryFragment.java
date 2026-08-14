@@ -25,6 +25,7 @@ public class StoryFragment {
     private Integer likeCount;//点赞数（冗余计数）
     private Integer isAnonymous;//是否匿名：0显示昵称 1显示「匿名用户」
     private Integer status;//生命周期状态：0待审核 1已发布 2已隐藏
+    private Integer commentCount;//评论数（非表字段：列表查询时用子查询填充，卡片上显示）
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;//创建时间
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

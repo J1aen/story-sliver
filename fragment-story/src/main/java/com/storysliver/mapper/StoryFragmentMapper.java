@@ -31,12 +31,14 @@ public interface StoryFragmentMapper {
     StoryFragment selectById(Long id);
 
     /** 首页分页列表：只查已发布，时间倒序；分页由 PageHelper 注入 */
-    @Select("select id, user_id, content, like_count, is_anonymous, status, created_at, updated_at " +
+    @Select("select id, user_id, content, like_count, is_anonymous, status, created_at, updated_at, " +
+            "(select count(*) from comment c where c.fragment_id = story_fragment.id and c.status = 0) as commentCount " +
             "from story_fragment where status = 1 order by created_at desc, id desc")
     List<StoryFragment> selectPublishedPage();
 
     /** 我的碎片：按用户查全部状态（待审核/已发布/已隐藏） */
-    @Select("select id, user_id, content, like_count, is_anonymous, status, created_at, updated_at " +
+    @Select("select id, user_id, content, like_count, is_anonymous, status, created_at, updated_at, " +
+            "(select count(*) from comment c where c.fragment_id = story_fragment.id and c.status = 0) as commentCount " +
             "from story_fragment where user_id = #{userId} order by created_at desc, id desc")
     List<StoryFragment> selectByUser(Long userId);
 

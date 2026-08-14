@@ -1,13 +1,15 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { deleteFragment, getMyFragments, hideFragment, unhideFragment } from '../api/fragments'
+import { deleteFragment, getMyFragments, hideFragment, likeFragment, unhideFragment, unlikeFragment } from '../api/fragments'
 import FragmentCard from '../components/FragmentCard.vue'
+import CommentModal from '../components/CommentModal.vue'// v2.0 Task 21：评论详情弹窗
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 
 const fragments = ref([])
 const loading = ref(true)
 const confirmTarget = ref(null)
 const message = ref('')
+const commentFragment = ref(null)// 正在查看评论的碎片（null=弹窗关闭）
 
 // 加载我的碎片（全部状态：待审核/已发布/已隐藏，含匿名的）
 async function load() {
@@ -42,6 +44,21 @@ async function onConfirmDelete() {
 }
 
 onMounted(load)
+
+// v2.0 Task 21：详情弹窗里点赞/取消（fragment 对象就地更新）
+async function toggleLike(f) {
+  try {
+    if (f.likedByMe) {
+      await unlikeFragment(f.id)
+      f.likedByMe = false
+      f.likeCount--
+    } else {
+      await likeFragment(f.id)
+      f.likedByMe = true
+      f.likeCount++
+    }
+  } catch (e) { message.value = e.message }
+}
 </script>
 
 <template>
@@ -57,6 +74,8 @@ onMounted(load)
       @hide="onHide"
       @unhide="onUnhide"
       @delete="confirmTarget = f"
+      @like="toggleLike"
+      @comments="commentFragment = f"
     />
     <ConfirmDialog
       :show="!!confirmTarget"
@@ -65,5 +84,7 @@ onMounted(load)
       @cancel="confirmTarget = null"
       @confirm="onConfirmDelete"
     />
+    <!-- v2.0 Task 21：评论详情弹窗（我的碎片里也能看评论/点赞） -->
+    <CommentModal v-if="commentFragment" :fragment="commentFragment" @like="toggleLike" @close="commentFragment = null" />
   </div>
 </template>

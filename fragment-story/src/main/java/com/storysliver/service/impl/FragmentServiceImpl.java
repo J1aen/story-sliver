@@ -126,6 +126,8 @@ public class FragmentServiceImpl implements FragmentService {
         vo.setIsAnonymous(f.getIsAnonymous());
         vo.setStatus(f.getStatus());
         vo.setLikedByMe(likedByMe);
+        // 评论数（卡片上「评论」按钮显示；没有则按 0 展示）
+        vo.setCommentCount(f.getCommentCount() == null ? 0 : f.getCommentCount());
         // 时间转成前端好读的格式
         vo.setCreatedAt(f.getCreatedAt() == null
                 ? ""
@@ -149,9 +151,11 @@ public class FragmentServiceImpl implements FragmentService {
     @Override
 
     public List<FragmentVO> my(Long userId) {
-//        返回用户发布的所有碎片
+//        先查当前用户赞过的所有碎片 id，用来标记「已赞」（和首页列表一样一次查完，避免 N+1）
+        List<Long> likedIds = likeMapper.selectLikedFragmentIds(userId);
+//        返回用户发布的所有碎片，并正确标记每条是否已赞（修复：之前固定传 false，我的碎片里心心永远空心）
         return fragmentMapper.selectByUser(userId).stream() //把 List 变成「流」，方便对每条数据逐个处理
-                .map(f -> toVO(f, false)) //对每条碎片 f 调 toVO 转成展示对象；第二个参数 false 表示「不标记已赞」
+                .map(f -> toVO(f, likedIds.contains(f.getId()))) //对每条碎片 f 调 toVO；已赞则传 true 显示实心心
                 .toList(); //处理完再收集回 List
     }
 

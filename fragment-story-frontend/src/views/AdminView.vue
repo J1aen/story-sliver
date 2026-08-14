@@ -22,6 +22,7 @@ import {
   addSensitiveWord,
   deleteSensitiveWord
 } from '../api/admin'
+import { getCommentReports, handleCommentReport } from '../api/comment'// v2.0 Task 21：评论举报
 import { userStore } from '../stores/user'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 
@@ -32,7 +33,7 @@ const users = ref([])
 const newCode = ref('')
 const rejectReason = ref('')
 const rejectingId = ref(null)// 当前正在填拒绝原因的用户 id（null=没有展开）
-const banTarget = ref(null)// 当前封禁弹窗的目标：{ type: 'fragment'|'user', id, userId, name }
+const banTarget = ref(null)// 当前封禁弹窗的目标：{ type: 'fragment'|'user'|'report', id, userId, name }
 const banPermanent = ref(false)
 const banDays = ref('')
 const banReason = ref('')
@@ -47,6 +48,8 @@ const editingAnnId = ref(null)
 // —— 敏感词管理（v1.2，仅站长）——
 const words = ref([])
 const newWord = ref('')
+// —— 评论举报（v2.0 Task 21，管理员/站长）——
+const reports = ref([])
 
 async function loadAnn() {
   try { annList.value = await getAnnouncements() } catch (e) { message.value = e.message }
@@ -93,6 +96,17 @@ async function delWord(w) {
   try { await deleteSensitiveWord(w.id); await loadWords() } catch (e) { message.value = e.message }
 }
 
+// —— 评论举报（v2.0 Task 21）——
+async function loadReports() {
+  try { reports.value = await getCommentReports() } catch (e) { message.value = e.message }
+}
+// 处理举报：dismiss 不下架 / delete 下架评论 / ban 下架并封禁评论用户
+async function handleReport(r, action, banDays, banReason) {
+  try {
+    await handleCommentReport(r.id, action, banDays ?? null, banReason ?? null)
+    await loadReports()
+  } catch (e) { message.value = e.message }
+}
 // 按状态筛选用户（保持服务端分页数据，客户端过滤）
 const filteredUsers = computed(() => {
   if (userStatusFilter.value === 'all') return users.value
@@ -198,6 +212,11 @@ async function submitBan() {
       await banUser(t.userId, days, reason)
       message.value = `已删除碎片并封禁 ${t.name || '该用户'}` + (banPermanent.value ? '（永久）' : `（${days} 天）`) + `，理由：${reason}`
       await loadFragments(tab.value === 'review' ? 0 : 1)
+    } else if (t.type === 'report') {
+      // 评论举报的「下架并封禁」：后端一次完成 下架评论 + 封禁评论用户
+      await handleCommentReport(t.reportId, 'ban', days, reason)
+      message.value = `已下架评论并封禁 ${t.name || '该用户'}` + (banPermanent.value ? '（永久）' : `（${days} 天）`) + `，理由：${reason}`
+      await loadReports()
     } else {
       await banUser(t.id, days, reason)
       message.value = `已封禁 ${t.name || '该用户'}` + (banPermanent.value ? '（永久）' : `（${days} 天）`) + `，理由：${reason}`
@@ -215,6 +234,7 @@ function switchTab(t) {
   else if (t === 'users') loadUsers()
   else if (t === 'ann') loadAnn()
   else if (t === 'words') loadWords()
+  else if (t === 'reports') loadReports()
 }
 
 onMounted(() => loadFragments(0))
@@ -232,6 +252,8 @@ onMounted(() => loadFragments(0))
       <!-- v1.2 Task 30：公告与敏感词管理，仅站长可见 -->
       <button v-if="userStore.isOwner" :class="{ active: tab === 'ann' }" @click="switchTab('ann')">公告</button>
       <button v-if="userStore.isOwner" :class="{ active: tab === 'words' }" @click="switchTab('words')">敏感词</button>
+      <!-- v2.0 Task 21：评论举报（管理员和站长都能看） -->
+      <button v-if="userStore.isAdmin" :class="{ active: tab === 'reports' }" @click="switchTab('reports')">评论举报</button>
     </nav>
     <p v-if="message" class="toast">{{ message }}</p>
 
@@ -284,6 +306,25 @@ onMounted(() => loadFragments(0))
           <button class="word-x" @click="delWord(w)">✕</button>
         </span>
       </div>
+    </template>
+
+    <!-- 评论举报（v2.0 Task 21） -->
+    <template v-if="tab === 'reports'">
+      <p v-if="reports.length === 0" class="empty">没有待处理举报</p>
+      <article v-for="r in reports" :key="r.id" class="card">
+        <div class="meta">
+          <span class="author">{{ r.commenterName }}</span>
+          <span class="tag pending">待处理</span>
+          <span class="time">举报 #{{ r.id }}</span>
+        </div>
+        <p class="content">评论：{{ r.commentContent }}</p>
+        <p class="ban-reason">举报理由：{{ r.reason }}</p>
+        <div class="actions">
+          <button class="btn small" @click="handleReport(r, 'dismiss')">不下架</button>
+          <button class="btn small danger" @click="handleReport(r, 'delete')">下架评论</button>
+          <button class="btn small danger" @click="openBan({ type: 'report', reportId: r.id, userId: r.commenterId, name: r.commenterName })">下架并封禁</button>
+        </div>
+      </article>
     </template>
 
     <!-- 碎片审核 / 已发布列表 -->
@@ -388,8 +429,8 @@ onMounted(() => loadFragments(0))
     <!-- 封禁弹窗：自定义天数或永久 -->
     <div v-if="banTarget" class="modal-mask" @click.self="cancelBan">
       <div class="modal">
-        <h3>封禁{{ banTarget.type === 'fragment' ? '并删除该碎片' : '账号' }}</h3>
-        <p class="subtitle">封禁 {{ banTarget.name }}{{ banTarget.type === 'fragment' ? '，并删除该碎片' : '' }}</p>
+        <h3>封禁{{ banTarget.type === 'fragment' ? '并删除该碎片' : banTarget.type === 'report' ? '并下架评论' : '账号' }}</h3>
+        <p class="subtitle">封禁 {{ banTarget.name }}{{ banTarget.type === 'fragment' ? '，并删除该碎片' : banTarget.type === 'report' ? '，并下架其评论' : '' }}</p>
         <input v-model="banReason" class="input" placeholder="封禁理由（必填，被封禁用户可见）" />
         <label class="checkbox"><input type="checkbox" v-model="banPermanent" /> 永久封禁</label>
         <input v-if="!banPermanent" v-model="banDays" type="number" min="1" class="input" placeholder="封禁天数（至少 1 天）" />

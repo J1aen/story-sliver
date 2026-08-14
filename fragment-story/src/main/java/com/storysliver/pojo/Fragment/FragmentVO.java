@@ -18,5 +18,6 @@ public class FragmentVO {
     private Integer authorRole;//发布者角色：0普通 1管理员 2站长（匿名时为 null，不显示铭牌）
     private String authorAvatar;//发布者已审核头像 URL（匿名时为 null，不显示头像）
     private Boolean likedByMe;//当前登录用户是否已赞（列表接口填充）
+    private Integer commentCount;//评论数（卡片上「评论」按钮显示）
     private String createdAt;//格式化后的创建时间（yyyy-MM-dd HH:mm:ss）
 }

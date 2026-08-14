@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { getFragments, likeFragment, submitFragment, unlikeFragment } from '../api/fragments'
 import { userStore } from '../stores/user'
 import FragmentCard from '../components/FragmentCard.vue'
+import CommentModal from '../components/CommentModal.vue'// v2.0 Task 21：评论详情弹窗
 
 const fragments = ref([])
 const pageNum = ref(0)
@@ -14,6 +15,7 @@ const content = ref('')
 const isAnonymous = ref(false)
 const submitting = ref(false)
 const message = ref('')
+const commentFragment = ref(null)// 正在查看评论的碎片（null=弹窗关闭）
 let timer
 
 function notice(text) {
@@ -27,9 +29,10 @@ async function loadMore() {
   if (loading.value || !hasMore.value) return
   loading.value = true
   try {
-    const data = await getFragments(pageNum.value + 1, pageSize)
+    const next = pageNum.value + 1// 要请求的下一页
+    const data = await getFragments(next, pageSize)
     fragments.value.push(...data.list)
-    pageNum.value = data.pageNum
+    pageNum.value = next// 后端 PageBean 不返回 pageNum，前端自己累计（修复同样的 NaN bug）
     hasMore.value = fragments.value.length < data.total
   } catch (e) {
     notice(e.message)
@@ -81,6 +84,11 @@ async function toggleLike(fragment) {
 }
 
 onMounted(loadMore)
+
+// v2.0 Task 21：点卡片上的「💬 评论」→ 记录碎片并弹出详情窗
+function openComments(fragment) {
+  commentFragment.value = fragment
+}
 </script>
 
 <template>
@@ -107,11 +115,14 @@ onMounted(loadMore)
 
     <!-- 瀑布流：桌面 3 列 / 平板 2 列 / 手机 1 列 -->
     <div class="fragment-masonry">
-      <FragmentCard v-for="f in fragments" :key="f.id" :fragment="f" @like="toggleLike" />
+      <FragmentCard v-for="f in fragments" :key="f.id" :fragment="f" @like="toggleLike" @comments="openComments" />
     </div>
 
     <div v-if="hasMore" class="more-wrap">
       <button class="btn" :disabled="loading" @click="loadMore">{{ loading ? '加载中…' : '加载更多' }}</button>
     </div>
+
+    <!-- v2.0 Task 21：评论详情弹窗 -->
+    <CommentModal v-if="commentFragment" :fragment="commentFragment" @like="toggleLike" @close="commentFragment = null" />
   </div>
 </template>
