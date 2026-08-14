@@ -177,7 +177,7 @@ story-sliver
 **环境要求**：JDK 17 · MySQL 8 · Node.js 18+
 
 1. **初始化数据库**：在本地 MySQL 执行 `fragment-story/src/main/resources/db/init.sql`，创建 `story_sliver` 库和 4 张表
-2. **配置后端**：修改 `fragment-story/src/main/resources/application.properties` 里的数据库账号密码（本地默认 `root / 1234`）
+2. **配置后端**：修改 `fragment-story/src/main/resources/application.properties` 里的数据库账号密码（默认配置仅限本地开发，生产环境通过部署环境变量覆盖）
 3. **启动后端**：IDEA 打开 `fragment-story`，运行 `com.storysliver.StoryApplication`，访问 `http://localhost:8080`
 4. **启动前端**：
    ```bash
@@ -225,7 +225,7 @@ story-sliver
 ## 十一、常见问题
 
 - **为什么百度搜不到**：IP + 8080 端口的形式不会被搜索引擎收录；需要「域名 + 80 端口」，详见 `fragment-story/deploy/部署指南.md`
-- **怎么在 IDEA 里查看线上数据库**：使用 SSH 隧道——General 填 `127.0.0.1:3306`（账号 `story`），SSH/SSL 标签勾选 Use SSH tunnel 并填服务器地址，无需开放 3306 公网端口
+- **怎么在 IDEA 里查看线上数据库**：通过 SSH 隧道连接（避免把数据库端口暴露公网）；连接账号与密码属于敏感信息，请参考服务器部署配置填写，不在公开文档中列出
 - **更新新功能**：改代码 → `npm run build` + 拷贝 static → `mvn package` → 上传 jar → `systemctl restart story`（不动数据库结构时仅此而已）
 
 ## 十二、许可证
