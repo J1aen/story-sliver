@@ -61,7 +61,8 @@ async function savePassword() {
   } catch (e) { settingsErr.value = e.message }
 }
 
-// —— 公告（v1.2 Task 30）：进首页检查一次；sessionStorage 记已读，刷新不重弹 ——
+// —— 公告（v1.2 Task 30）：进首页检查一次；展示即记入 sessionStorage，刷新不重弹；
+//    登录/注册进入首页前由 LoginView 清除标记，保证「登录/注册后首次进首页」重新弹 ——
 const announcement = ref(null)
 const showAnn = ref(false)
 async function checkAnnouncement() {
@@ -69,6 +70,8 @@ async function checkAnnouncement() {
     const d = await getActiveAnnouncement()
     if (d && d.id && sessionStorage.getItem('announcement-seen') !== String(d.id)) {
       announcement.value = d
+      // 展示即记为「本会话已看过」：之前只在点 ✕ 时才记录，点「我知道了」后刷新会重复弹（bug 修复）
+      sessionStorage.setItem('announcement-seen', String(d.id))
       showAnn.value = true
     }
   } catch (e) {
@@ -76,9 +79,7 @@ async function checkAnnouncement() {
   }
 }
 function onAnnClose() {
-  if (announcement.value) {
-    sessionStorage.setItem('announcement-seen', String(announcement.value.id))
-  }
+  // 已读标记在展示时已写入，这里只负责隐藏
   showAnn.value = false
 }
 

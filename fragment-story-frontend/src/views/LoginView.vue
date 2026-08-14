@@ -42,6 +42,8 @@ async function submit() {
     userStore.setLogin(token, null)
     const me = await getMe()
     userStore.setUser(me)
+    // v1.2 公告修复：登录/注册后首次进入首页要重新弹公告，清掉本会话已读标记
+    sessionStorage.removeItem('announcement-seen')
     router.push('/')
   } catch (e) {
     error.value = e.message
