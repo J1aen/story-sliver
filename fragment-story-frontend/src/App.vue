@@ -61,25 +61,58 @@ async function savePassword() {
   } catch (e) { settingsErr.value = e.message }
 }
 
-// —— 公告（v1.2 Task 30）：进首页检查一次；展示即记入 sessionStorage，刷新不重弹；
-//    登录/注册进入首页前由 LoginView 清除标记，保证「登录/注册后首次进首页」重新弹 ——
+// —— 公告（v1.2 Task 30）：进首页检查一次；展示即记入 sessionStorage，刷新不重弹 A；
+//    点「我知道了」收成 B 滚动条后，B 状态也记入 sessionStorage → 刷新后 B 仍显示；
+//    只有点 B 上的 ✕ 才彻底消失；登录/注册进入首页前由 LoginView 清除标记，重新弹 A ——
 const announcement = ref(null)
 const showAnn = ref(false)
+const annMode = ref('modal')// modal=A弹窗 bar=B滚动条 closed=已关闭（由父组件统一控制，便于持久化 B 状态）
 async function checkAnnouncement() {
   try {
     const d = await getActiveAnnouncement()
-    if (d && d.id && sessionStorage.getItem('announcement-seen') !== String(d.id)) {
+    if (!d || !d.id) {
+      // 没有上架公告：什么都不显示
+      announcement.value = null
+      showAnn.value = false
+      return
+    }
+    const id = String(d.id)
+    const seen = sessionStorage.getItem('announcement-seen') === id
+    if (!seen) {
+      // 本会话第一次看到：弹 A，并立即记已读 → 刷新不再重弹 A
       announcement.value = d
-      // 展示即记为「本会话已看过」：之前只在点 ✕ 时才记录，点「我知道了」后刷新会重复弹（bug 修复）
-      sessionStorage.setItem('announcement-seen', String(d.id))
+      sessionStorage.setItem('announcement-seen', id)
+      sessionStorage.removeItem('announcement-bar')
+      annMode.value = 'modal'
+      showAnn.value = true
+    } else if (sessionStorage.getItem('announcement-bar') === id) {
+      // 已看过且没点 ✕：刷新后恢复 B 滚动条（不弹 A）
+      announcement.value = d
+      annMode.value = 'bar'
       showAnn.value = true
     }
+    // 已看过且点过 ✕：彻底消失，不再显示
   } catch (e) {
     // 公告拉取失败不阻塞页面
   }
 }
+function onAnnKnown() {
+  // A → B：收起为滚动条；B 状态记入 sessionStorage，刷新后 B 仍显示
+  annMode.value = 'bar'
+  if (announcement.value) {
+    sessionStorage.setItem('announcement-bar', String(announcement.value.id))
+  }
+}
+function onAnnOpen() {
+  // B → A：点滚动条重新展开弹窗
+  annMode.value = 'modal'
+}
 function onAnnClose() {
-  // 已读标记在展示时已写入，这里只负责隐藏
+  // B → ✕：彻底消失；清除 B 状态（已读标记保留，刷新也不会再出现）
+  annMode.value = 'closed'
+  if (announcement.value) {
+    sessionStorage.removeItem('announcement-bar')
+  }
   showAnn.value = false
 }
 
@@ -125,7 +158,14 @@ onMounted(async () => {
       </div>
     </nav>
     <!-- 公告（v1.2 Task 30）：B 状态公告栏放在导航下方，不遮挡导航 -->
-    <AnnouncementModal v-if="showAnn && announcement" :announcement="announcement" @close="onAnnClose" />
+    <AnnouncementModal
+      v-if="showAnn && announcement"
+      :announcement="announcement"
+      :mode="annMode"
+      @known="onAnnKnown"
+      @open="onAnnOpen"
+      @close="onAnnClose"
+    />
     <p v-if="settingsMsg" class="toast">{{ settingsMsg }}</p>
     <router-view />
 

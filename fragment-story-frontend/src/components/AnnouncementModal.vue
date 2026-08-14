@@ -1,45 +1,39 @@
 <script setup>
-import { ref } from 'vue'
-
 /**
  * 公告组件（v1.2 Task 30）
- * 交互：A 居中弹窗（有图/无图两种排版）→ 点「我知道了」→ B 顶部公告栏 → 点 B 重新展开 A → 点 ✕ 关闭。
+ * 交互：A 居中弹窗（有图/无图两种排版）→ 点「我知道了」→ B 顶部公告栏 → 点 B 重新展开 A → 点 B 上的 ✕ 彻底关闭。
  * 为什么做双状态：既要「进站醒目提示」（A），又不打断后续浏览（B），两者可来回切换。
+ * 为什么 mode 由父组件（App.vue）控制：B 状态要写进 sessionStorage，刷新后恢复 B 而不重弹 A，状态放父级好统一维护。
  */
-const props = defineProps({ announcement: { type: Object, required: true } })
-const emit = defineEmits(['close'])
-const mode = ref('modal')// modal=弹窗 bar=公告栏 closed=已关闭
-
-// A → B：收起为顶部公告栏
-function known() { mode.value = 'bar' }
-// B → A：点公告栏重新展开弹窗
-function openModal() { mode.value = 'modal' }
-// 关闭并通知父组件记录「已读」（sessionStorage），刷新不再弹
-function close() { mode.value = 'closed'; emit('close') }
+defineProps({
+  announcement: { type: Object, required: true },
+  mode: { type: String, default: 'modal' } // modal=A弹窗 bar=B滚动条 closed=已关闭
+})
+const emit = defineEmits(['known', 'open', 'close'])
 </script>
 
 <template>
   <div v-if="mode !== 'closed'" class="ann-root">
     <!-- 状态 A：居中弹窗 -->
     <template v-if="mode === 'modal'">
-      <div class="modal-mask" @click.self="known">
+      <div class="modal-mask" @click.self="emit('known')">
         <div class="modal ann-modal">
           <img v-if="announcement.imageUrl" :src="announcement.imageUrl" class="ann-img" alt="公告图片" />
           <div class="ann-body" :class="{ noimg: !announcement.imageUrl }">
             <h3>{{ announcement.title }}</h3>
             <p class="ann-content">{{ announcement.content }}</p>
-            <button class="btn primary" @click="known">我知道了</button>
+            <button class="btn primary" @click="emit('known')">我知道了</button>
           </div>
         </div>
       </div>
     </template>
     <!-- 状态 B：导航栏下方的滚动公告栏（不遮挡导航） -->
-    <div v-else class="ann-bar" @click="openModal">
+    <div v-else class="ann-bar" @click="emit('open')">
       <span class="ann-tag">公告</span>
       <span class="ann-track" aria-hidden="true">
         <span class="ann-scroll">{{ announcement.title }}：{{ announcement.content }}　·　{{ announcement.title }}：{{ announcement.content }}</span>
       </span>
-      <span class="ann-x" @click.stop="close">✕</span>
+      <span class="ann-x" @click.stop="emit('close')">✕</span>
     </div>
   </div>
 </template>
