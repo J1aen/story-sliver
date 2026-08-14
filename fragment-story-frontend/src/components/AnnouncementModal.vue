@@ -67,7 +67,7 @@ function close() { mode.value = 'closed'; emit('close') }
   padding-left: 100%;
   font-size: 12.5px;
   color: #3b352c;
-  animation: ann-scroll 50s linear infinite; /* 50 秒滚完一遍：慢速滚动，不晃眼 */
+  animation: ann-scroll 90s linear infinite; /* 90 秒滚完一遍：非常缓慢的滚动 */
 }
 @keyframes ann-scroll {
   from { transform: translateX(0); }
