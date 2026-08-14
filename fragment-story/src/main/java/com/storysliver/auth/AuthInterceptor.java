@@ -36,11 +36,13 @@ public class AuthInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws Exception {
-        // 首页列表是公开接口（仅 GET /api/fragments），游客可看，无需登录；
+        // 首页列表 / 评论列表是公开接口（仅 GET /api/fragments、GET /api/comments），游客可看，无需登录；
         // 若带了 token，Controller 的 optionalUserId 会解析并标记「已赞」。
         // 为什么在这里判断而不是在 WebConfig 排除：排除是按路径的，会把 POST 发布也放行，
         // 导致发布时拿不到登录用户（之前就是这里出的空指针 bug）。
-        if ("GET".equals(request.getMethod()) && "/api/fragments".equals(request.getRequestURI())) {
+        if ("GET".equals(request.getMethod())
+                && ("/api/fragments".equals(request.getRequestURI())
+                    || "/api/comments".equals(request.getRequestURI()))) {
             return true;
         }
 

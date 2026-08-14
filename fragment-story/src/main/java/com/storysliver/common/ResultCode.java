@@ -37,7 +37,15 @@ public enum ResultCode {
     NOT_AUTHOR(403, "只能操作自己的碎片"),
     CANNOT_MODIFY_OWNER(400, "不能修改站长"),
     AVATAR_TOO_SMALL(400, "图片太小，请选择尺寸更大的图片"),
-    ANNOUNCEMENT_NOT_FOUND(404, "公告不存在");
+    ANNOUNCEMENT_NOT_FOUND(404, "公告不存在"),
+
+    // 以下为 v2.0 Task 21 评论相关错误码
+    COMMENT_EMPTY(400, "评论内容不能为空"),
+    COMMENT_TOO_LONG(400, "评论不能超过 100 字"),
+    COMMENT_NOT_FOUND(404, "评论不存在"),
+    COMMENT_TOO_FREQUENT(429, "评论太频繁，请 1 分钟后再试"),
+    REPORT_REASON_REQUIRED(400, "举报理由必填"),
+    REPORT_DUPLICATE(400, "已经举报过这条评论了");
 
     private final int code;
     private final String message;

@@ -92,6 +92,22 @@
 
     <build>
         <plugins>
+            <!-- 显式声明注解处理器：保证 Maven 命令行编译时 Lombok 生效。
+                 为什么必须配：部分 JDK + maven-compiler-plugin 组合下，只靠 classpath 自动发现注解处理器不可靠，
+                 会导致 @Data/@Slf4j 等不生成代码、全项目报「找不到 getter/构造器」。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
