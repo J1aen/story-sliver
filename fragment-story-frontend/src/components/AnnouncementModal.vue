@@ -33,10 +33,12 @@ function close() { mode.value = 'closed'; emit('close') }
         </div>
       </div>
     </template>
-    <!-- 状态 B：顶部公告栏 -->
+    <!-- 状态 B：导航栏下方的滚动公告栏（不遮挡导航） -->
     <div v-else class="ann-bar" @click="openModal">
       <span class="ann-tag">公告</span>
-      <span class="ann-text">{{ announcement.title }}：{{ announcement.content }}</span>
+      <span class="ann-track" aria-hidden="true">
+        <span class="ann-scroll">{{ announcement.title }}：{{ announcement.content }}　·　{{ announcement.title }}：{{ announcement.content }}</span>
+      </span>
       <span class="ann-x" @click.stop="close">✕</span>
     </div>
   </div>
@@ -51,14 +53,25 @@ function close() { mode.value = 'closed'; emit('close') }
 .ann-content { margin: 0 0 14px; font-size: 13.5px; line-height: 1.7; color: #8d8577; white-space: pre-wrap; }
 .ann-body.noimg { text-align: center; }
 .ann-body.noimg .ann-content { text-align: left; }
-/* 公告栏：固定顶部，不打断浏览 */
+/* 公告栏：普通文档流，放在导航栏下方，不遮挡导航；文字横向滚动 */
 .ann-bar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 60;
   display: flex; align-items: center; gap: 8px;
-  padding: 9px 14px; background: #fffdf7; border-bottom: 1px solid #e7dfcf;
+  padding: 7px 14px; background: #fff6ec; border-bottom: 1px solid #e7dfcf;
   cursor: pointer; box-shadow: 0 4px 12px rgba(60, 50, 30, 0.12);
 }
 .ann-tag { font-size: 10px; color: #fff; background: #e0564f; border-radius: 999px; padding: 2px 7px; flex: none; }
-.ann-text { flex: 1; font-size: 12.5px; color: #3b352c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ann-track { flex: 1; overflow: hidden; position: relative; }
+.ann-scroll {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  font-size: 12.5px;
+  color: #3b352c;
+  animation: ann-scroll 20s linear infinite;
+}
+@keyframes ann-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
 .ann-x { color: #8d8577; cursor: pointer; flex: none; padding: 0 4px; }
 </style>

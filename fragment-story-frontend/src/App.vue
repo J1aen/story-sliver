@@ -123,6 +123,8 @@ onMounted(async () => {
         <router-link v-else to="/login">登录</router-link>
       </div>
     </nav>
+    <!-- 公告（v1.2 Task 30）：B 状态公告栏放在导航下方，不遮挡导航 -->
+    <AnnouncementModal v-if="showAnn && announcement" :announcement="announcement" @close="onAnnClose" />
     <p v-if="settingsMsg" class="toast">{{ settingsMsg }}</p>
     <router-view />
 
@@ -163,8 +165,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- 公告弹窗/公告栏（v1.2 Task 30） -->
-    <AnnouncementModal v-if="showAnn && announcement" :announcement="announcement" @close="onAnnClose" />
   </div>
 </template>
 
