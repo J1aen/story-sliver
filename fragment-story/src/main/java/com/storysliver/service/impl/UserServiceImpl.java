@@ -11,6 +11,7 @@ import com.storysliver.pojo.Auth.RegisterRequest;
 import com.storysliver.pojo.SystemConfig;
 import com.storysliver.pojo.User;
 import com.storysliver.service.UserService;
+import com.storysliver.service.SensitiveWordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -50,6 +51,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private JwtUtil jwtUtil;//登录令牌签发
+
+    @Autowired
+    private SensitiveWordService sensitiveWordService;//敏感词校验（v1.2：昵称不能含敏感词）
 
     /** 头像保存目录：来自 application.properties 的 app.upload.avatar-dir（当前 D:/HeadImage） */
     @Value("${app.upload.avatar-dir}")
@@ -95,6 +99,16 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ResultCode.USERNAME_TAKEN);
         }
 
+        // 动作4.5（v1.2）：昵称唯一 + 敏感词校验。昵称会对外展示（个人主页 @昵称），
+        // 重复会混淆用户，敏感词会违规，都在入库前拦截。
+        String nickname = request.getNickname() == null ? "" : request.getNickname().trim();
+        if (userMapper.selectByNickname(nickname) != null) {
+            throw new BusinessException(ResultCode.NICKNAME_TAKEN);
+        }
+        if (sensitiveWordService.containsSensitive(nickname)) {
+            throw new BusinessException(ResultCode.NICKNAME_SENSITIVE);
+        }
+
         // 动作5：判定角色。默认普通用户；勾选管理员才需要校验特殊密码
         int role = User.ROLE_USER;
         if (Boolean.TRUE.equals(request.getIsAdmin())) {
@@ -114,7 +128,7 @@ public class UserServiceImpl implements UserService {
         // 动作6：组装用户并加密密码。数据库里永远只存 BCrypt 哈希，不存明文
         User user = new User();
         user.setUsername(username);// 用户名已在动作3.5 trim 过
-        user.setNickname(request.getNickname().trim());
+        user.setNickname(nickname);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(role);
         user.setStatus(User.STATUS_NORMAL);
@@ -206,6 +220,43 @@ public class UserServiceImpl implements UserService {
         String url = "/uploads/" + fileName;
         userMapper.updateAvatarPending(userId, url);
         return url;
+    }
+
+    /**
+     * 修改昵称（v1.2）：唯一性 + 敏感词校验通过后更新。
+     * 为什么在 Service 里校验而不是只在 Controller：校验规则（唯一/敏感词）是业务规则，集中在一处好维护。
+     */
+    @Override
+    public void updateNickname(Long userId, String nickname) {
+        nickname = nickname == null ? "" : nickname.trim();
+        if (nickname.isEmpty() || nickname.length() > 32) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "昵称不能为空且最长 32 位");
+        }
+        if (sensitiveWordService.containsSensitive(nickname)) {
+            throw new BusinessException(ResultCode.NICKNAME_SENSITIVE);
+        }
+        // 查重：查到的是「别人」才算重复（自己改自己的昵称不算）
+        User byNickname = userMapper.selectByNickname(nickname);
+        if (byNickname != null && !byNickname.getId().equals(userId)) {
+            throw new BusinessException(ResultCode.NICKNAME_TAKEN);
+        }
+        userMapper.updateNickname(userId, nickname);
+    }
+
+    /**
+     * 修改密码（v1.2）：旧密码必须正确，新密码 BCrypt 加密落库。
+     * 为什么旧密码用 matches 而不是解密比对：BCrypt 不可逆，只能拿明文去比对哈希。
+     */
+    @Override
+    public void updatePassword(Long userId, String oldPassword, String newPassword) {
+        User user = userMapper.selectById(userId);
+        if (user == null || oldPassword == null || !passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BusinessException(ResultCode.OLD_PASSWORD_WRONG);
+        }
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new BusinessException(ResultCode.PASSWORD_TOO_WEAK);
+        }
+        userMapper.updatePassword(userId, passwordEncoder.encode(newPassword));
     }
 
     /**

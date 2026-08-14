@@ -10,7 +10,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
+import com.storysliver.pojo.Auth.UpdateNicknameRequest;
+import com.storysliver.pojo.Auth.UpdatePasswordRequest;
+import jakarta.validation.Valid;
 
 import java.util.Map;
 
@@ -46,5 +51,25 @@ public class UserController {
     public Result avatar(@RequestParam("file") MultipartFile file) {
         String pending = userService.uploadAvatar(UserContext.getUserId(), file);
         return Result.success(Map.of("avatarPending", pending, "text", "头像已提交，等待管理员审核"));
+    }
+
+    /**
+     * 修改昵称（v1.2）：设置下拉里「修改昵称」调用。
+     * @param request 新昵称（唯一、不含敏感词、≤32 字）
+     */
+    @PutMapping("/nickname")
+    public Result updateNickname(@Valid @RequestBody UpdateNicknameRequest request) {
+        userService.updateNickname(UserContext.getUserId(), request.getNickname());
+        return Result.success(Map.of("text", "昵称已更新"));
+    }
+
+    /**
+     * 修改密码（v1.2）：设置下拉里「修改密码」调用；改完前端强制重新登录。
+     * @param request 旧密码 + 新密码
+     */
+    @PutMapping("/password")
+    public Result updatePassword(@Valid @RequestBody UpdatePasswordRequest request) {
+        userService.updatePassword(UserContext.getUserId(), request.getOldPassword(), request.getNewPassword());
+        return Result.success(Map.of("text", "密码已修改，请重新登录"));
     }
 }

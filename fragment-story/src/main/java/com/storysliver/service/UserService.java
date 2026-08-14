@@ -41,4 +41,19 @@ public interface UserService {
      * @return 待审核头像 URL
      */
     String uploadAvatar(Long userId, MultipartFile file);
+
+    /**
+     * 修改昵称（v1.2）。
+     * @param userId 当前用户 id
+     * @param nickname 新昵称（需唯一、不含敏感词、≤32 字）
+     */
+    void updateNickname(Long userId, String nickname);
+
+    /**
+     * 修改密码（v1.2）。
+     * @param userId 当前用户 id
+     * @param oldPassword 旧密码（必须正确）
+     * @param newPassword 新密码（至少 6 位）
+     */
+    void updatePassword(Long userId, String oldPassword, String newPassword);
 }

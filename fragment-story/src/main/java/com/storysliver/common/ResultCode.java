@@ -22,7 +22,10 @@ public enum ResultCode {
     REGISTER_TOO_FREQUENT(429, "注册过于频繁，请稍后再试"),
     USERNAME_TAKEN(400, "用户名已存在"),
     USERNAME_INVALID(400, "用户名只能包含字母、数字和下划线（4-20位），不能有汉字"),
+    NICKNAME_TAKEN(400, "昵称已被使用"),
+    NICKNAME_SENSITIVE(400, "昵称包含敏感词，请修改"),
     PASSWORD_TOO_WEAK(400, "密码至少 6 位"),
+    OLD_PASSWORD_WRONG(400, "旧密码不正确"),
     ADMIN_CODE_WRONG(400, "管理员注册密码错误"),
     LOGIN_FAILED(401, "用户名或密码错误"),
     ACCOUNT_BANNED(403, "账号已被封禁，请联系站长"),
@@ -33,7 +36,8 @@ public enum ResultCode {
     FRAGMENT_NOT_PUBLISHED(400, "碎片不存在或不可操作"),
     NOT_AUTHOR(403, "只能操作自己的碎片"),
     CANNOT_MODIFY_OWNER(400, "不能修改站长"),
-    AVATAR_TOO_SMALL(400, "图片太小，请选择尺寸更大的图片");
+    AVATAR_TOO_SMALL(400, "图片太小，请选择尺寸更大的图片"),
+    ANNOUNCEMENT_NOT_FOUND(404, "公告不存在");
 
     private final int code;
     private final String message;

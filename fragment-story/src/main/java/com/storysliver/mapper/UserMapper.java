@@ -29,6 +29,11 @@ public interface UserMapper {
             "from `user` where username = #{username}")
     User selectByUsername(String username);
 
+    /** 按昵称精确查询（v1.2）：注册/修改昵称时的唯一性校验 */
+    @Select("select id, username, nickname, password, email, role, status, avatar, avatar_pending, avatar_reject_reason, ban_expires_at, ban_reason, created_at, updated_at " +
+            "from `user` where nickname = #{nickname}")
+    User selectByNickname(String nickname);
+
     /** 按主键查询：我的信息、管理端查看发布者 */
     @Select("select id, username, nickname, password, email, role, status, avatar, avatar_pending, avatar_reject_reason, ban_expires_at, ban_reason, created_at, updated_at " +
             "from `user` where id = #{id}")
@@ -52,6 +57,14 @@ public interface UserMapper {
     /** 修改角色：站长指定/撤销管理员时使用 */
     @Update("update `user` set role = #{role} where id = #{id}")
     int updateRole(@Param("id") Long id, @Param("role") Integer role);
+
+    /** 修改昵称（v1.2）：设置下拉里「修改昵称」使用 */
+    @Update("update `user` set nickname = #{nickname} where id = #{id}")
+    int updateNickname(@Param("id") Long id, @Param("nickname") String nickname);
+
+    /** 修改密码（v1.2）：只存 BCrypt 哈希，旧密码校验通过后调用 */
+    @Update("update `user` set password = #{password} where id = #{id}")
+    int updatePassword(@Param("id") Long id, @Param("password") String password);
 
     /** 封禁：status=1，记录到期时间（空=永久）与理由（必填） */
     @Update("update `user` set status = 1, ban_expires_at = #{banExpiresAt}, ban_reason = #{banReason} where id = #{id}")

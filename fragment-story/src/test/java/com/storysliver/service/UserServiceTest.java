@@ -38,6 +38,7 @@ class UserServiceTest {
     private CaptchaService captchaService;
     private RegisterRateLimiter registerRateLimiter;
     private PasswordEncoder passwordEncoder;
+    private SensitiveWordService sensitiveWordService;
     private UserServiceImpl service;
 
     @BeforeEach
@@ -48,6 +49,9 @@ class UserServiceTest {
         captchaService = mock(CaptchaService.class);
         registerRateLimiter = mock(RegisterRateLimiter.class);
         passwordEncoder = new BCryptPasswordEncoder();
+        // v1.2：注册会校验昵称敏感词，全局打桩返回 false（不敏感），避免每个用例重复写
+        sensitiveWordService = mock(SensitiveWordService.class);
+        when(sensitiveWordService.containsSensitive(any())).thenReturn(false);
 
         // 真实 JwtUtil：测试密钥（>=32 字节），方便断言 token 内容
         JwtProperties properties = new JwtProperties();
@@ -64,6 +68,7 @@ class UserServiceTest {
         ReflectionTestUtils.setField(service, "registerRateLimiter", registerRateLimiter);
         ReflectionTestUtils.setField(service, "passwordEncoder", passwordEncoder);
         ReflectionTestUtils.setField(service, "jwtUtil", jwtUtil);
+        ReflectionTestUtils.setField(service, "sensitiveWordService", sensitiveWordService);
     }
 
     /** 构造一个注册请求：默认验证码 key=k、答案=8 */

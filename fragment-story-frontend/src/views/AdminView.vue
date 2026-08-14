@@ -11,7 +11,16 @@ import {
   banUser,
   unbanUser,
   updateAdminCode,
-  updateUserRole
+  updateUserRole,
+  getAnnouncements,
+  createAnnouncement,
+  updateAnnouncement,
+  updateAnnouncementStatus,
+  deleteAnnouncement,
+  uploadAnnouncementImage,
+  getSensitiveWords,
+  addSensitiveWord,
+  deleteSensitiveWord
 } from '../api/admin'
 import { userStore } from '../stores/user'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
@@ -31,6 +40,58 @@ const banError = ref('')// 封禁弹窗内的错误提示（避免被遮罩挡�
 const message = ref('')
 const confirmTarget = ref(null)
 const userStatusFilter = ref('all')// 用户筛选：all 全部 / normal 正常 / temp 暂时封禁 / perm 永久封禁
+// —— 公告管理（v1.2，仅站长）——
+const annList = ref([])
+const annForm = ref({ title: '', content: '', imageUrl: '' })
+const editingAnnId = ref(null)
+// —— 敏感词管理（v1.2，仅站长）——
+const words = ref([])
+const newWord = ref('')
+
+async function loadAnn() {
+  try { annList.value = await getAnnouncements() } catch (e) { message.value = e.message }
+}
+function editAnn(a) {
+  editingAnnId.value = a.id
+  annForm.value = { title: a.title, content: a.content, imageUrl: a.imageUrl || '' }
+}
+async function saveAnn() {
+  try {
+    if (editingAnnId.value) await updateAnnouncement(editingAnnId.value, annForm.value)
+    else await createAnnouncement(annForm.value)
+    editingAnnId.value = null
+    annForm.value = { title: '', content: '', imageUrl: '' }
+    message.value = '公告已保存（新建默认下架，需手动上架）'
+    await loadAnn()
+  } catch (e) { message.value = e.message }
+}
+async function toggleAnnStatus(a) {
+  try { await updateAnnouncementStatus(a.id, a.status === 1 ? 0 : 1); await loadAnn() }
+  catch (e) { message.value = e.message }
+}
+async function removeAnn(a) {
+  try { await deleteAnnouncement(a.id); await loadAnn() } catch (e) { message.value = e.message }
+}
+async function onAnnImage(e) {
+  const file = e.target.files[0]
+  e.target.value = ''
+  if (!file) return
+  try {
+    const d = await uploadAnnouncementImage(file)
+    annForm.value.imageUrl = d.url// 回填图片地址到表单，保存公告时一起提交
+  } catch (err) { message.value = err.message }
+}
+
+async function loadWords() {
+  try { words.value = await getSensitiveWords() } catch (e) { message.value = e.message }
+}
+async function addWord() {
+  try { await addSensitiveWord(newWord.value); newWord.value = ''; await loadWords() }
+  catch (e) { message.value = e.message }
+}
+async function delWord(w) {
+  try { await deleteSensitiveWord(w.id); await loadWords() } catch (e) { message.value = e.message }
+}
 
 // 按状态筛选用户（保持服务端分页数据，客户端过滤）
 const filteredUsers = computed(() => {
@@ -152,6 +213,8 @@ function switchTab(t) {
   else if (t === 'published') loadFragments(1)
   else if (t === 'avatars') loadAvatars()
   else if (t === 'users') loadUsers()
+  else if (t === 'ann') loadAnn()
+  else if (t === 'words') loadWords()
 }
 
 onMounted(() => loadFragments(0))
@@ -166,8 +229,62 @@ onMounted(() => loadFragments(0))
       <button :class="{ active: tab === 'avatars' }" @click="switchTab('avatars')">头像审核</button>
       <button v-if="userStore.isOwner" :class="{ active: tab === 'users' }" @click="switchTab('users')">用户</button>
       <button v-if="userStore.isOwner" :class="{ active: tab === 'config' }" @click="tab = 'config'">配置</button>
+      <!-- v1.2 Task 30：公告与敏感词管理，仅站长可见 -->
+      <button v-if="userStore.isOwner" :class="{ active: tab === 'ann' }" @click="switchTab('ann')">公告</button>
+      <button v-if="userStore.isOwner" :class="{ active: tab === 'words' }" @click="switchTab('words')">敏感词</button>
     </nav>
     <p v-if="message" class="toast">{{ message }}</p>
+
+    <!-- 公告管理（v1.2，仅站长） -->
+    <template v-if="tab === 'ann'">
+      <div class="card">
+        <h3>{{ editingAnnId ? '编辑公告' : '新建公告' }}</h3>
+        <input v-model="annForm.title" class="input" maxlength="50" placeholder="公告标题（≤50字）" />
+        <textarea v-model="annForm.content" class="input" rows="4" maxlength="2000" placeholder="公告正文（≤2000字）"></textarea>
+        <div class="ann-image-row">
+          <label class="btn small">
+            {{ annForm.imageUrl ? '更换图片' : '上传图片' }}
+            <input type="file" accept="image/*" style="display:none" @change="onAnnImage" />
+          </label>
+          <img v-if="annForm.imageUrl" :src="annForm.imageUrl" class="ann-preview" alt="预览" />
+          <button v-if="annForm.imageUrl" class="btn small" @click="annForm.imageUrl = ''">移除图片</button>
+        </div>
+        <div class="actions">
+          <button v-if="editingAnnId" class="btn small" @click="editingAnnId = null; annForm = { title: '', content: '', imageUrl: '' }">取消编辑</button>
+          <button class="btn small primary" @click="saveAnn">{{ editingAnnId ? '保存修改' : '创建（默认下架）' }}</button>
+        </div>
+      </div>
+      <p v-if="annList.length === 0" class="empty">还没有公告</p>
+      <article v-for="a in annList" :key="a.id" class="card">
+        <div class="meta">
+          <span class="author">{{ a.title }}</span>
+          <span class="tag">{{ a.status === 1 ? '已上架' : '已下架' }}</span>
+          <span class="time">{{ a.createdAt }}</span>
+        </div>
+        <p class="content">{{ a.content }}</p>
+        <img v-if="a.imageUrl" :src="a.imageUrl" class="ann-preview" alt="公告图片" />
+        <div class="actions">
+          <button class="btn small" @click="editAnn(a)">编辑</button>
+          <button class="btn small primary" @click="toggleAnnStatus(a)">{{ a.status === 1 ? '下架' : '上架' }}</button>
+          <button class="btn small danger" @click="removeAnn(a)">删除</button>
+        </div>
+      </article>
+    </template>
+
+    <!-- 敏感词管理（v1.2，仅站长） -->
+    <template v-if="tab === 'words'">
+      <div class="card">
+        <input v-model="newWord" class="input" maxlength="50" placeholder="输入新敏感词" style="max-width:240px" />
+        <button class="btn small primary" @click="addWord">添加</button>
+      </div>
+      <p v-if="words.length === 0" class="empty">还没有敏感词</p>
+      <div class="word-list">
+        <span v-for="w in words" :key="w.id" class="word-chip">
+          {{ w.word }}
+          <button class="word-x" @click="delWord(w)">✕</button>
+        </span>
+      </div>
+    </template>
 
     <!-- 碎片审核 / 已发布列表 -->
     <template v-if="tab === 'review' || tab === 'published'">

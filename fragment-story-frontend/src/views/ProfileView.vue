@@ -93,7 +93,8 @@ onMounted(async () => {
         <div v-else class="avatar">{{ (userStore.user?.nickname || userStore.user?.username || '?').charAt(0) }}</div>
       </div>
       <h2>{{ userStore.user?.nickname || userStore.user?.username }}</h2>
-      <p class="subtitle">@{{ userStore.user?.username }}</p>
+      <!-- v1.2 Task 23：个人主页显示 @昵称（不再是 @账号） -->
+      <p class="subtitle">@{{ userStore.user?.nickname || userStore.user?.username }}</p>
       <!-- 个人主页身份铭牌：站长金色 / 管理员蓝色 -->
       <RoleBadge :role="userStore.user?.role" />
       <!-- 有待审核头像时提示「审核中」 -->

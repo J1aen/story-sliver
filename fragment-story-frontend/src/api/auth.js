@@ -10,3 +10,6 @@ export const uploadAvatar = (file) => {
   formData.append('file', file)
   return request.post('/users/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
 }
+// 修改昵称 / 修改密码（v1.2，设置下拉里）
+export const updateNickname = (nickname) => request.put('/users/nickname', { nickname })
+export const updatePassword = (data) => request.put('/users/password', data)

@@ -130,6 +130,14 @@ h1 { font-size: 26px; }
 .like-btn { background: none; border: none; cursor: pointer; color: #b48a6a; font-size: 14px; padding: 4px 8px; }
 /* Task 22：点赞后心形变纯红色（不再只是偏橘的棕色） */
 .like-btn.liked { color: #e0564f; }
+
+/* v1.2 公告/敏感词管理样式 */
+.ann-image-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+.ann-preview { max-width: 180px; max-height: 120px; border-radius: 8px; object-fit: cover; border: 1px solid #e7dfcf; }
+textarea.input { resize: vertical; }
+.word-list { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0; }
+.word-chip { display: inline-flex; align-items: center; gap: 6px; background: #f3ecdd; border-radius: 999px; padding: 5px 10px; font-size: 13px; }
+.word-x { border: none; background: none; color: #8d8577; cursor: pointer; font-size: 12px; }
 .btn.small { padding: 3px 10px; font-size: 13px; letter-spacing: 0; }
 .btn.xs { padding: 2px 8px; font-size: 12px; letter-spacing: 0; line-height: 1.6; }
 .btn.danger { background: #f3e2dd; border-color: #d9b3aa; color: #a3483a; }
