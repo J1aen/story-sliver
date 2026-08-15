@@ -1,6 +1,7 @@
 package com.storysliver.service;
 
 import com.storysliver.pojo.Auth.RegisterRequest;
+import com.storysliver.pojo.ProfileVO;
 import com.storysliver.pojo.User;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -10,6 +11,12 @@ import org.springframework.web.multipart.MultipartFile;
  * Controller 只依赖接口，换实现或做单元测试（Mockito 打桩）都方便。
  */
 public interface UserService {
+
+    /**
+     * 他人主页（v2.0 Task 20）：返回用户公开信息 + 非匿名已发布碎片分页；用户不存在抛 404。
+     * @param currentUserId 当前登录用户 id（游客为 null）：用于标记「我是否赞过」；游客不泄露登录态
+     */
+    ProfileVO getPublicProfile(Long userId, Long currentUserId, int pageNum, int pageSize);
 
     /**
      * 注册用户。

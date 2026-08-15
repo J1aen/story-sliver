@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
+import { useRouter } from 'vue-router'// v2.0：点评论者头像/昵称跳他的公开主页
 import { addComment, deleteComment, getComments, reportComment } from '../api/comment'
 import { userStore } from '../stores/user'
 import ConfirmDialog from './ConfirmDialog.vue'
@@ -16,6 +17,7 @@ const props = defineProps({
   fragment: { type: Object, required: true }// 点击 💬 的碎片（详情弹窗里展示原文）
 })
 const emit = defineEmits(['close', 'like'])// 关闭弹窗 / 点赞碎片（由父组件调接口并更新数据）
+const router = useRouter()
 
 const comments = ref([])// 评论列表（时间正序，一页 5 条）
 const pageNum = ref(0)// 当前已加载到第几页（0=还没加载）
@@ -106,6 +108,13 @@ async function submitReport() {
     reportError.value = e.message
   }
 }
+
+/** v2.0：点评论者头像/昵称 → 跳到他的公开主页（无作者 id 时不跳） */
+function openCommenterProfile(c) {
+  if (c.authorUserId) {
+    router.push(`/profile/${c.authorUserId}`)
+  }
+}
 </script>
 
 <template>
@@ -147,10 +156,17 @@ async function submitReport() {
         还没有评论，来抢沙发
       </p>
       <div v-for="c in comments" :key="c.id" class="comment-row">
-        <UserAvatar :avatar="c.authorAvatar" :name="c.authorName" :size="24" />
+        <UserAvatar
+          class="comment-ava"
+          :class="{ clickable: !!c.authorUserId }"
+          :avatar="c.authorAvatar"
+          :name="c.authorName"
+          :size="24"
+          @click="openCommenterProfile(c)"
+        />
         <div class="comment-main">
           <div class="comment-top">
-            <span class="comment-name">{{ c.authorName }}</span>
+            <span class="comment-name" :class="{ clickable: !!c.authorUserId }" @click="openCommenterProfile(c)">{{ c.authorName }}</span>
             <RoleBadge v-if="c.authorRole" :role="c.authorRole" />
             <span class="comment-time">{{ c.createdAt }}</span>
           </div>
@@ -222,6 +238,9 @@ async function submitReport() {
 .comment-main { flex: 1; min-width: 0; }
 .comment-top { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
 .comment-name { font-size: 13px; font-weight: bold; color: #6d5f47; }
+.comment-name.clickable { cursor: pointer; }
+.comment-name.clickable:hover { text-decoration: underline; }
+.comment-ava.clickable { cursor: pointer; }
 .comment-time { font-size: 12px; color: #b8a98b; }
 .comment-text { font-size: 14px; margin: 2px 0 0; word-break: break-word; }
 .comment-ops { flex: none; display: flex; flex-direction: column; gap: 4px; }

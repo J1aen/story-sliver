@@ -6,23 +6,36 @@ import com.storysliver.auth.JwtUtil;
 import com.storysliver.auth.RegisterRateLimiter;
 import com.storysliver.common.BusinessException;
 import com.storysliver.common.ResultCode;
+import com.storysliver.mapper.FragmentLikeMapper;
+import com.storysliver.mapper.StoryFragmentMapper;
 import com.storysliver.mapper.SystemConfigMapper;
 import com.storysliver.mapper.UserMapper;
+import com.storysliver.pojo.Fragment.FragmentVO;
+import com.storysliver.pojo.ProfileVO;
 import com.storysliver.pojo.Auth.RegisterRequest;
+import com.storysliver.pojo.StoryFragment;
 import com.storysliver.pojo.SystemConfig;
 import com.storysliver.pojo.User;
 import com.storysliver.service.impl.UserServiceImpl;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,6 +52,9 @@ class UserServiceTest {
     private RegisterRateLimiter registerRateLimiter;
     private PasswordEncoder passwordEncoder;
     private SensitiveWordService sensitiveWordService;
+    private StoryFragmentMapper storyFragmentMapper;
+    private FragmentService fragmentService;
+    private FragmentLikeMapper likeMapper;
     private UserServiceImpl service;
 
     @BeforeEach
@@ -52,6 +68,10 @@ class UserServiceTest {
         // v1.2：注册会校验昵称敏感词，全局打桩返回 false（不敏感），避免每个用例重复写
         sensitiveWordService = mock(SensitiveWordService.class);
         when(sensitiveWordService.containsSensitive(any())).thenReturn(false);
+        // v2.0 Task 20：他人主页需要查公开碎片 + 转 VO
+        storyFragmentMapper = mock(StoryFragmentMapper.class);
+        fragmentService = mock(FragmentService.class);
+        likeMapper = mock(FragmentLikeMapper.class);
 
         // 真实 JwtUtil：测试密钥（>=32 字节），方便断言 token 内容
         JwtProperties properties = new JwtProperties();
@@ -69,6 +89,78 @@ class UserServiceTest {
         ReflectionTestUtils.setField(service, "passwordEncoder", passwordEncoder);
         ReflectionTestUtils.setField(service, "jwtUtil", jwtUtil);
         ReflectionTestUtils.setField(service, "sensitiveWordService", sensitiveWordService);
+        ReflectionTestUtils.setField(service, "storyFragmentMapper", storyFragmentMapper);
+        ReflectionTestUtils.setField(service, "fragmentService", fragmentService);
+        ReflectionTestUtils.setField(service, "likeMapper", likeMapper);
+    }
+
+    @AfterEach
+    void tearDown() {
+        // 测试没走 MyBatis 拦截器，手动清掉 PageHelper 的 ThreadLocal，避免串到其他用例
+        PageHelper.clearPage();
+    }
+
+    /** 他人主页：用户不存在抛 404（USER_NOT_FOUND） */
+    @Test
+    void getPublicProfileUserNotFoundThrows() {
+        when(userMapper.selectPublicById(99L)).thenReturn(null);
+
+        BusinessException e = assertThrows(BusinessException.class,
+                () -> service.getPublicProfile(99L, null, 1, 9));
+        assertEquals(ResultCode.USER_NOT_FOUND, e.getResultCode());
+    }
+
+    /** 他人主页：登录用户看主页时，已赞过的碎片 likedByMe=true（心形同步） */
+    @Test
+    void getPublicProfileMarksLikedFragments() {
+        User u = new User();
+        u.setId(1L);
+        u.setNickname("阿澈");
+        u.setRole(User.ROLE_OWNER);
+        u.setAvatar("a.png");
+        when(userMapper.selectPublicById(1L)).thenReturn(u);
+
+        StoryFragment f = new StoryFragment();
+        f.setId(5L);
+        f.setUserId(1L);
+        Page<StoryFragment> page = new Page<>();
+        page.add(f);
+        page.setTotal(1);
+        when(storyFragmentMapper.selectPublicByUser(1L)).thenReturn(page);
+        when(likeMapper.selectLikedFragmentIds(2L)).thenReturn(List.of(5L));// 当前登录用户赞过碎片 5
+
+        FragmentVO vo = new FragmentVO();
+        vo.setId(5L);
+        when(fragmentService.toVO(any(StoryFragment.class), anyBoolean())).thenReturn(vo);
+
+        ProfileVO profile = service.getPublicProfile(1L, 2L, 1, 9);
+
+        assertEquals(1L, profile.getUserId());
+        assertEquals("阿澈", profile.getNickname());
+        assertEquals("a.png", profile.getAvatar());
+        assertEquals(User.ROLE_OWNER, profile.getRole());
+        assertEquals(1L, profile.getFragments().getTotal());
+        assertEquals(1, profile.getFragments().getList().size());
+        verify(fragmentService).toVO(any(StoryFragment.class), eq(true));// 赞过的碎片 → likedByMe=true
+    }
+
+    /** 游客看他人主页：likedByMe 固定 false（不泄露登录态） */
+    @Test
+    void getPublicProfileForGuestIsNotLiked() {
+        User u = new User();
+        u.setId(1L);
+        when(userMapper.selectPublicById(1L)).thenReturn(u);
+
+        StoryFragment f = new StoryFragment();
+        f.setId(5L);
+        Page<StoryFragment> page = new Page<>();
+        page.add(f);
+        page.setTotal(1);
+        when(storyFragmentMapper.selectPublicByUser(1L)).thenReturn(page);
+
+        service.getPublicProfile(1L, null, 1, 9);// currentUserId 为 null = 游客
+
+        verify(fragmentService).toVO(any(StoryFragment.class), eq(false));
     }
 
     /** 构造一个注册请求：默认验证码 key=k、答案=8 */

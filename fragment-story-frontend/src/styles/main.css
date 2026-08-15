@@ -155,6 +155,11 @@ h1 { font-size: 26px; }
 .cmt-icon { width: 15px; height: 15px; }
 .cmt-count { font-size: 13px; }
 
+/* v2.0 Task 20：他人主页入口——非匿名碎片的头像/昵称可点击 */
+.author.clickable { cursor: pointer; }
+.author.clickable:hover { text-decoration: underline; }
+.author-click { cursor: pointer; }
+
 /* v1.2 公告/敏感词管理样式 */
 .ann-image-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
 .ann-preview { max-width: 180px; max-height: 120px; border-radius: 8px; object-fit: cover; border: 1px solid #e7dfcf; }

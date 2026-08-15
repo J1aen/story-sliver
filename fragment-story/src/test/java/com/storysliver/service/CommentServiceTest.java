@@ -153,6 +153,7 @@ class CommentServiceTest {
         when(commentMapper.selectByFragment(1L)).thenReturn(page);
 
         User author = new User();
+        author.setId(2L);
         author.setNickname("阿澈");
         author.setRole(User.ROLE_ADMIN);
         author.setAvatar("a.png");
@@ -165,6 +166,7 @@ class CommentServiceTest {
         assertEquals(5L, vos.get(0).getId());
         assertEquals("阿澈", vos.get(0).getAuthorName());
         assertEquals("a.png", vos.get(0).getAuthorAvatar());
+        assertEquals(2L, vos.get(0).getAuthorUserId());// 评论者 id（前端点头像/昵称跳主页用）
         assertEquals(User.ROLE_ADMIN, vos.get(0).getAuthorRole());
         assertTrue(vos.get(0).getMine());
         assertEquals("2026-08-14 21:00:00", vos.get(0).getCreatedAt());

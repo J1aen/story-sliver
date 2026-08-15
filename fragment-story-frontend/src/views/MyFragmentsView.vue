@@ -1,9 +1,12 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'// v2.0 Task 20：点头像/昵称跳自己的公开主页
 import { deleteFragment, getMyFragments, hideFragment, likeFragment, unhideFragment, unlikeFragment } from '../api/fragments'
 import FragmentCard from '../components/FragmentCard.vue'
 import CommentModal from '../components/CommentModal.vue'// v2.0 Task 21：评论详情弹窗
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+
+const router = useRouter()
 
 const fragments = ref([])
 const loading = ref(true)
@@ -76,6 +79,7 @@ async function toggleLike(f) {
       @delete="confirmTarget = f"
       @like="toggleLike"
       @comments="commentFragment = f"
+      @profile="(f) => f.authorUserId && router.push(`/profile/${f.authorUserId}`)"
     />
     <ConfirmDialog
       :show="!!confirmTarget"

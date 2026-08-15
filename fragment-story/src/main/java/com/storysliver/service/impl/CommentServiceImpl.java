@@ -90,6 +90,7 @@ public class CommentServiceImpl implements CommentService {
             User author = userMapper.selectById(c.getUserId());// 查评论者（昵称/头像/角色）
             vo.setAuthorName(author == null ? "已注销" : author.getNickname());// 昵称（用户被删则显示已注销）
             vo.setAuthorAvatar(author == null ? null : author.getAvatar());// 头像（可空）
+            vo.setAuthorUserId(author == null ? null : author.getId());// 评论者 id（跳转他人主页用）
             vo.setAuthorRole(author == null ? null : author.getRole());// 角色（前端显示铭牌）
             vo.setMine(userId != null && userId.equals(c.getUserId()));// 是否自己的评论（游客恒为 false）
             vo.setCreatedAt(c.getCreatedAt() == null ? null : c.getCreatedAt()

@@ -42,6 +42,12 @@ public interface StoryFragmentMapper {
             "from story_fragment where user_id = #{userId} order by created_at desc, id desc")
     List<StoryFragment> selectByUser(Long userId);
 
+    /** 某用户的公开碎片（v2.0 Task 20）：只查「非匿名 + 已发布」，时间倒序；PageHelper 自动拼 limit */
+    @Select("select id, user_id, content, like_count, is_anonymous, status, created_at, updated_at, " +
+            "(select count(*) from comment c where c.fragment_id = story_fragment.id and c.status = 0) as commentCount " +
+            "from story_fragment where user_id = #{userId} and is_anonymous = 0 and status = 1 order by id desc")
+    List<StoryFragment> selectPublicByUser(Long userId);
+
     /** 管理列表：status 传 null 查全部，传 0/1 按状态筛选（动态 SQL 在 XML） */
     List<StoryFragment> selectManagePage(Integer status);
 

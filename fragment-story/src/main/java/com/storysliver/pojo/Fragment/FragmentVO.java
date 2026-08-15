@@ -10,6 +10,7 @@ import lombok.Data;
 public class FragmentVO {
     private Long id;//主键
     private Long userId;//发布者id（仅管理端返回，公开列表为 null，不泄露）
+    private Long authorUserId;//作者用户 id（v2.0 Task 20：非匿名时返回，供点击头像/昵称跳转主页；匿名时为 null）
     private String content;//碎片内容
     private Integer likeCount;//点赞数
     private Integer isAnonymous;//是否匿名：0显示昵称 1显示「匿名用户」

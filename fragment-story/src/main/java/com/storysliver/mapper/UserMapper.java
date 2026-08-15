@@ -39,6 +39,10 @@ public interface UserMapper {
             "from `user` where id = #{id}")
     User selectById(Long id);
 
+    /** 公开用户信息（v2.0 Task 20）：只取展示需要的字段，绝不带 password/email */
+    @Select("select id, nickname, avatar, role from `user` where id = #{id}")
+    User selectPublicById(Long id);
+
     /** 分页查询用户（管理端用户列表，分页由 PageHelper 注入） */
     @Select("select id, username, nickname, password, email, role, status, avatar, avatar_pending, avatar_reject_reason, ban_expires_at, ban_reason, created_at, updated_at " +
             "from `user` order by id")

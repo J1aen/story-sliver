@@ -12,6 +12,7 @@ public class CommentVO {
     private String content;//评论内容
     private String authorName;//评论者昵称（用户不存在时显示「已注销」）
     private String authorAvatar;//评论者已审核头像 URL（可空）
+    private Long authorUserId;//评论者用户 id（v2.0：前端点头像/昵称跳到他的公开主页；用户不存在时为 null）
     private Integer authorRole;//评论者角色：0 普通 1 管理员 2 站长（前端据此显示铭牌）
     private Boolean mine;//是否当前登录用户自己的评论（前端显示「删除」按钮）
     private String createdAt;//格式化后的创建时间（yyyy-MM-dd HH:mm:ss）

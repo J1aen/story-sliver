@@ -5,13 +5,22 @@ import com.storysliver.auth.JwtUtil;
 import com.storysliver.auth.RegisterRateLimiter;
 import com.storysliver.common.BusinessException;
 import com.storysliver.common.ResultCode;
+import com.storysliver.mapper.FragmentLikeMapper;
+import com.storysliver.mapper.StoryFragmentMapper;
 import com.storysliver.mapper.SystemConfigMapper;
 import com.storysliver.mapper.UserMapper;
 import com.storysliver.pojo.Auth.RegisterRequest;
+import com.storysliver.pojo.Fragment.FragmentVO;
+import com.storysliver.pojo.PageBean;
+import com.storysliver.pojo.ProfileVO;
+import com.storysliver.pojo.StoryFragment;
 import com.storysliver.pojo.SystemConfig;
 import com.storysliver.pojo.User;
+import com.storysliver.service.FragmentService;
 import com.storysliver.service.UserService;
 import com.storysliver.service.SensitiveWordService;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,6 +34,8 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 用户服务实现：注册 / 登录的核心业务逻辑。
@@ -55,6 +66,15 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private SensitiveWordService sensitiveWordService;//敏感词校验（v1.2：昵称不能含敏感词）
 
+    @Autowired
+    private StoryFragmentMapper storyFragmentMapper;//查该用户的公开碎片（v2.0 Task 20）
+
+    @Autowired
+    private FragmentService fragmentService;//实体转 VO（v2.0 Task 20，复用碎片的展示组装）
+
+    @Autowired
+    private FragmentLikeMapper likeMapper;//查当前用户赞过哪些碎片（v2.0 Task 20：主页心形同步）
+
     /** 头像保存目录：来自 application.properties 的 app.upload.avatar-dir（当前 D:/HeadImage） */
     @Value("${app.upload.avatar-dir}")
     private String avatarDir;
@@ -63,6 +83,35 @@ public class UserServiceImpl implements UserService {
     private static final long MAX_AVATAR_SIZE = 2 * 1024 * 1024L;
     /** 头像统一裁剪成 128x128 正方形 */
     private static final int AVATAR_SIZE = 128;
+
+    /**
+     * 他人主页（v2.0 Task 20）：用户公开信息 + 非匿名已发布碎片分页。
+     * 为什么先查用户再查碎片：用户不存在直接 404，避免返回「空壳主页」。
+     * 为什么只查 is_anonymous=0 AND status=1：匿名碎片与未上架碎片都不对外展示（Q4 已确认）。
+     */
+    @Override
+    public ProfileVO getPublicProfile(Long userId, Long currentUserId, int pageNum, int pageSize) {
+        User u = userMapper.selectPublicById(userId);// 只取公开字段（无 password/email）
+        if (u == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);// 用户不存在：404
+        }
+        PageHelper.startPage(pageNum, pageSize);// 开启分页：下一句查询自动拼 limit
+        List<StoryFragment> list = storyFragmentMapper.selectPublicByUser(userId);// 非匿名 + 已发布，倒序
+        Page<StoryFragment> page = (Page<StoryFragment>) list;// PageHelper 包装，带 total
+        ProfileVO vo = new ProfileVO();// 组装返回对象
+        vo.setUserId(u.getId());// 用户 id
+        vo.setNickname(u.getNickname());// 昵称
+        vo.setAvatar(u.getAvatar());// 头像
+        vo.setRole(u.getRole());// 角色（铭牌）
+        // 登录用户：一次查出他赞过的碎片 id，标记 likedByMe（心形同步）；游客不查、固定 false
+        List<Long> likedIds = currentUserId == null ? List.of() : likeMapper.selectLikedFragmentIds(currentUserId);
+        // 实体 → 展示 VO
+        List<FragmentVO> vos = list.stream()
+                .map(f -> fragmentService.toVO(f, likedIds.contains(f.getId())))
+                .collect(Collectors.toList());
+        vo.setFragments(new PageBean(page.getTotal(), vos));// total 给前端做「加载更多」
+        return vo;
+    }
 
     /**
      * 注册：按顺序完成 8 个动作，任何一个失败就抛 BusinessException 结束。

@@ -13,3 +13,6 @@ export const uploadAvatar = (file) => {
 // 修改昵称 / 修改密码（v1.2，设置下拉里）
 export const updateNickname = (nickname) => request.put('/users/nickname', { nickname })
 export const updatePassword = (data) => request.put('/users/password', data)
+// 他人主页（v2.0 Task 20）：公开接口，游客可看；返回用户信息 + 非匿名已发布碎片分页
+export const getUserProfile = (userId, pageNum, pageSize) =>
+  request.get(`/users/${userId}/profile`, { params: { pageNum, pageSize } })

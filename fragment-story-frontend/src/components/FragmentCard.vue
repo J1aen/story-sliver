@@ -3,9 +3,17 @@ import RoleBadge from './RoleBadge.vue'
 // Task 28：统一头像组件——有头像显示图片，没头像显示昵称首字占位
 import UserAvatar from './UserAvatar.vue'
 
-defineProps({ fragment: Object, showActions: Boolean })
-// v2.0 Task 21：新增 comments 事件——点卡片上的「💬 评论」打开详情弹窗
-defineEmits(['like', 'delete', 'hide', 'unhide', 'comments'])
+const props = defineProps({ fragment: Object, showActions: Boolean })
+// v2.0 Task 21：comments 事件——点「💬 评论」打开详情弹窗
+// v2.0 Task 20：profile 事件——非匿名时点头像/昵称跳转到该作者公开主页
+const emit = defineEmits(['like', 'delete', 'hide', 'unhide', 'comments', 'profile'])
+
+// 只有非匿名且后端给了 authorUserId 才允许点击跳主页（匿名不可点，Q4）
+function openProfile() {
+  if (props.fragment.isAnonymous !== 1 && props.fragment.authorUserId) {
+    emit('profile', props.fragment)
+  }
+}
 
 // 长碎片阈值：超过这个字数就独占一行（瀑布流里避免又细又长）
 const LONG_THRESHOLD = 200
@@ -20,8 +28,10 @@ const LONG_THRESHOLD = 200
         :avatar="fragment.authorAvatar"
         :name="fragment.authorName"
         :size="20"
+        class="author-click"
+        @click="openProfile"
       />
-      <span class="author">{{ fragment.authorName }}</span>
+      <span class="author" :class="{ clickable: fragment.isAnonymous !== 1 && fragment.authorUserId }" @click="openProfile">{{ fragment.authorName }}</span>
       <!-- 非匿名且作者是站长/管理员时，显示身份铭牌（匿名时 authorRole 为 null，不显示） -->
       <RoleBadge v-if="fragment.authorRole" :role="fragment.authorRole" />
       <span class="time">{{ fragment.createdAt }}</span>

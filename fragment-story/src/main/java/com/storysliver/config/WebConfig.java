@@ -33,7 +33,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/auth/captcha",//验证码：注册前必须先拿
                         "/api/auth/register",//注册：还没有账号
                         "/api/auth/login",//登录：还没有 token
-                        "/api/announcements/active");//公告：游客也要看到（v1.2）
+                        "/api/announcements/active",//公告：游客也要看到（v1.2）
+                        "/api/users/*/profile");//他人主页：公开可看，不需要登录（v2.0 Task 20）
         // 注意：首页列表 GET /api/fragments 的「游客放行」在 AuthInterceptor 里按方法判断，
         // 不能在这里排除路径——否则 POST 发布接口也会被放行（没有登录用户）
     }

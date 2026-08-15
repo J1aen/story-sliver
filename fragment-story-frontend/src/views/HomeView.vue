@@ -1,9 +1,13 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'// v2.0 Task 20：点头像/昵称跳转他人主页
 import { getFragments, likeFragment, submitFragment, unlikeFragment } from '../api/fragments'
 import { userStore } from '../stores/user'
 import FragmentCard from '../components/FragmentCard.vue'
 import CommentModal from '../components/CommentModal.vue'// v2.0 Task 21：评论详情弹窗
+import ProfileDrawer from '../components/ProfileDrawer.vue'// v2.0 Task 20：PC 端他人主页预览抽屉
+
+const router = useRouter()
 
 const fragments = ref([])
 const pageNum = ref(0)
@@ -16,6 +20,7 @@ const isAnonymous = ref(false)
 const submitting = ref(false)
 const message = ref('')
 const commentFragment = ref(null)// 正在查看评论的碎片（null=弹窗关闭）
+const profileDrawer = ref(null)// 正在预览的作者碎片（null=抽屉关闭；存 fragment 以取 authorUserId）
 let timer
 
 function notice(text) {
@@ -89,6 +94,20 @@ onMounted(loadMore)
 function openComments(fragment) {
   commentFragment.value = fragment
 }
+
+// v2.0 Task 20：点头像/昵称 → PC 弹右侧抽屉预览，移动端直接跳转完整主页（Q4）
+function openProfile(fragment) {
+  if (!fragment.authorUserId) return// 匿名碎片不可点
+  if (window.innerWidth < 768) {
+    router.push(`/profile/${fragment.authorUserId}`)
+    return
+  }
+  profileDrawer.value = fragment
+}
+function goProfile(userId) {
+  profileDrawer.value = null
+  router.push(`/profile/${userId}`)
+}
 </script>
 
 <template>
@@ -115,7 +134,14 @@ function openComments(fragment) {
 
     <!-- 瀑布流：桌面 3 列 / 平板 2 列 / 手机 1 列 -->
     <div class="fragment-masonry">
-      <FragmentCard v-for="f in fragments" :key="f.id" :fragment="f" @like="toggleLike" @comments="openComments" />
+      <FragmentCard
+        v-for="f in fragments"
+        :key="f.id"
+        :fragment="f"
+        @like="toggleLike"
+        @comments="openComments"
+        @profile="openProfile"
+      />
     </div>
 
     <div v-if="hasMore" class="more-wrap">
@@ -124,5 +150,15 @@ function openComments(fragment) {
 
     <!-- v2.0 Task 21：评论详情弹窗 -->
     <CommentModal v-if="commentFragment" :fragment="commentFragment" @like="toggleLike" @close="commentFragment = null" />
+    <!-- v2.0 Task 20：PC 他人主页预览抽屉 -->
+    <ProfileDrawer
+      v-if="profileDrawer"
+      :userId="profileDrawer.authorUserId"
+      @close="profileDrawer = null"
+      @go-full="goProfile"
+      @like="toggleLike"
+      @comments="openComments"
+      @profile="(f) => goProfile(f.authorUserId)"
+    />
   </div>
 </template>

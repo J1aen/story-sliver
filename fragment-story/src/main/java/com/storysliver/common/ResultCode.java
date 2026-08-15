@@ -45,7 +45,10 @@ public enum ResultCode {
     COMMENT_NOT_FOUND(404, "评论不存在"),
     COMMENT_TOO_FREQUENT(429, "评论太频繁，请 1 分钟后再试"),
     REPORT_REASON_REQUIRED(400, "举报理由必填"),
-    REPORT_DUPLICATE(400, "已经举报过这条评论了");
+    REPORT_DUPLICATE(400, "已经举报过这条评论了"),
+
+    // 以下为 v2.0 Task 20 他人主页相关错误码
+    USER_NOT_FOUND(404, "用户不存在");
 
     private final int code;
     private final String message;
