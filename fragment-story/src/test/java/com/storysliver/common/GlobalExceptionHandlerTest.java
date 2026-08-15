@@ -4,6 +4,7 @@ import com.storysliver.pojo.Result;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -43,5 +44,13 @@ class GlobalExceptionHandlerTest {
     void forbiddenMapsTo403() {
         ResponseEntity<Result> resp = handler.handleBusinessException(new BusinessException(ResultCode.FORBIDDEN));
         assertEquals(HttpStatus.FORBIDDEN, resp.getStatusCode());
+    }
+
+    /** 上传图片超限（Spring multipart 在进 Controller 前拦截）→ HTTP 400 友好提示，而不是 500 */
+    @Test
+    void uploadTooLargeMapsTo400() {
+        ResponseEntity<Result> resp = handler.handleUploadTooLarge(new MaxUploadSizeExceededException(1_000_000L));
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        assertEquals("图片太大，不能超过 5MB", resp.getBody().getText());
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
@@ -42,6 +43,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Result> handleUnreadable(HttpMessageNotReadableException e) {
         return ResponseEntity.badRequest().body(Result.error(ResultCode.BAD_REQUEST.getCode(), "请求体格式错误"));
+    }
+
+    /** 上传文件超限（Spring multipart 在进 Controller 前拦截）：返回 400 友好提示，而不是 500 */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Result> handleUploadTooLarge(MaxUploadSizeExceededException e) {
+        return ResponseEntity.badRequest().body(Result.error(ResultCode.BAD_REQUEST.getCode(), "图片太大，不能超过 5MB"));
     }
 
     /** 路径不存在（没有对应 Controller）：返回 404 */
