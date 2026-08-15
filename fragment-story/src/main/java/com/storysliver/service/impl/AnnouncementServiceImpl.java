@@ -6,6 +6,7 @@ import com.storysliver.mapper.AnnouncementMapper;
 import com.storysliver.pojo.Admin.AnnouncementRequest;
 import com.storysliver.pojo.Announcement;
 import com.storysliver.service.AnnouncementService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import java.util.List;
  * 为什么公告图片和头像共用一个上传目录：/uploads/** 静态映射已配好，直接复用省配置。
  */
 @Service
+@Slf4j
 public class AnnouncementServiceImpl implements AnnouncementService {
 
     @Autowired
@@ -77,8 +79,28 @@ public class AnnouncementServiceImpl implements AnnouncementService {
 
     @Override
     public void delete(Long id) {
-        requireExists(id);
-        announcementMapper.deleteById(id);
+        // 先取记录：既校验存在，也拿到图片 URL（删除时要连图片文件一起删）
+        Announcement a = announcementMapper.selectById(id);
+        if (a == null) {
+            throw new BusinessException(ResultCode.ANNOUNCEMENT_NOT_FOUND);
+        }
+        announcementMapper.deleteById(id);// 硬删除：数据库行直接删掉
+        deleteImageFile(a.getImageUrl());// 硬删除：本地图片文件一起删，不留孤儿文件
+    }
+
+    /**
+     * 删除公告图片文件：/uploads/ann_xxx.png → 上传目录/ann_xxx.png。
+     * 无图或删除失败都不影响主流程（数据库记录已经删掉）。
+     */
+    private void deleteImageFile(String url) {
+        if (url == null || !url.startsWith("/uploads/")) {
+            return;
+        }
+        String fileName = url.substring("/uploads/".length());
+        File file = new File(uploadDir, fileName);
+        if (file.exists() && !file.delete()) {
+            log.warn("删除公告图片文件失败: {}", file.getAbsolutePath());
+        }
     }
 
     @Override

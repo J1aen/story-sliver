@@ -40,6 +40,7 @@ const banReason = ref('')
 const banError = ref('')// 封禁弹窗内的错误提示（避免被遮罩挡住看不到）
 const message = ref('')
 const confirmTarget = ref(null)
+const confirmAnnTarget = ref(null)// 待删除的公告（null=没弹确认框）
 const userStatusFilter = ref('all')// 用户筛选：all 全部 / normal 正常 / temp 暂时封禁 / perm 永久封禁
 // —— 公告管理（v1.2，仅站长）——
 const annList = ref([])
@@ -72,8 +73,13 @@ async function toggleAnnStatus(a) {
   try { await updateAnnouncementStatus(a.id, a.status === 1 ? 0 : 1); await loadAnn() }
   catch (e) { message.value = e.message }
 }
-async function removeAnn(a) {
-  try { await deleteAnnouncement(a.id); await loadAnn() } catch (e) { message.value = e.message }
+// 删除公告：硬删除（记录 + 图片文件一起删，不可恢复），先弹窗确认
+async function confirmAnnDelete() {
+  try {
+    await deleteAnnouncement(confirmAnnTarget.value.id)
+    confirmAnnTarget.value = null
+    await loadAnn()
+  } catch (e) { message.value = e.message }
 }
 async function onAnnImage(e) {
   const file = e.target.files[0]
@@ -288,7 +294,7 @@ onMounted(() => loadFragments(0))
         <div class="actions">
           <button class="btn small" @click="editAnn(a)">编辑</button>
           <button class="btn small primary" @click="toggleAnnStatus(a)">{{ a.status === 1 ? '下架' : '上架' }}</button>
-          <button class="btn small danger" @click="removeAnn(a)">删除</button>
+          <button class="btn small danger" @click="confirmAnnTarget = a">删除</button>
         </div>
       </article>
     </template>
@@ -424,6 +430,15 @@ onMounted(() => loadFragments(0))
       message="删除后无法撤回，确定删除吗？"
       @cancel="confirmTarget = null"
       @confirm="onConfirmDelete"
+    />
+    <!-- 删除公告：硬删除（含图片文件），不可恢复，先确认 -->
+    <ConfirmDialog
+      :show="!!confirmAnnTarget"
+      title="删除公告"
+      message="删除后无法恢复，公告图片也会一起删除，确定删除吗？"
+      confirm-text="删除"
+      @cancel="confirmAnnTarget = null"
+      @confirm="confirmAnnDelete"
     />
 
     <!-- 封禁弹窗：自定义天数或永久 -->
