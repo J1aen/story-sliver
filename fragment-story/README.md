@@ -1,102 +1,56 @@
-# fragment-story（匿名故事碎片墙 - 后端）
+# fragment-story（匿名故事碎片墙 · 后端）
 
-Spring Boot 3 + MyBatis + MySQL 的后端基础架构，开箱即用，可直接在 IDEA 中打开继续写代码。
+Spring Boot 3 + MyBatis + MySQL 的匿名故事碎片墙后端；前端构建产物由本模块单端口托管（8080）。
+完整项目说明见仓库根目录 `README.md`，开发计划见 `实现计划.md`。
 
-## 已包含
+## 技术栈
 
-- 分层结构：controller / service / mapper / entity / dto / common / config / admin
-- 统一响应体 `Result<T>` + 全局异常处理
-- 故事碎片基础接口：提交、分页列表、点赞
-- 管理员接口：登录（内存 token）、删除违规碎片（软删除）
-- 跨域配置（前端开发服务器可直接访问）
-- 数据库初始化脚本
-
-## 环境要求
-
-- JDK 17+（本机已装 JDK 19）
-- Maven 3.6+
-- MySQL 8.x
+- Java 17 · Spring Boot 3.3.5 · MyBatis（注解 SQL，动态 SQL 用 XML）· MySQL 8
+- 认证：JWT（jjwt 0.12.6）+ BCrypt（spring-security-crypto）
+- 分页：PageHelper；测试：JUnit 5 + Mockito
 
 ## 快速开始
 
-1. 在 MySQL 中执行初始化脚本：
-
-   ```sql
-   source src/main/resources/db/init.sql;
-   ```
-
-   或在 Navicat / Workbench 中直接运行 `src/main/resources/db/init.sql`。
-
-2. 修改数据库账号密码（如与默认不一致）：
-
-   `src/main/resources/application.yml` 中的 `spring.datasource.username / password`。
-
-3. 用 IDEA 打开本目录（`fragment-story`），等待 Maven 导入依赖后，
-   运行 `com.storysliver.StoryApplication` 的 `main` 方法。
-
-启动成功后访问：`http://localhost:8080`
-
-## 接口一览
-
-| 方法 | 路径 | 说明 | 鉴权 |
-| --- | --- | --- | --- |
-| POST | `/api/fragments` | 提交一条匿名碎片 | 无 |
-| GET | `/api/fragments?pageNum=1&pageSize=10` | 分页获取碎片（最新在前） | 无 |
-| POST | `/api/fragments/{id}/like` | 给碎片点赞 | 无 |
-| POST | `/api/admin/login` | 管理员登录，返回 token | 无 |
-| DELETE | `/api/admin/fragments/{id}` | 管理员删除碎片（软删除） | 管理员 token |
-
-示例请求：
-
-```bash
-# 提交碎片
-curl -X POST http://localhost:8080/api/fragments \
-  -H "Content-Type: application/json" \
-  -d '{"content":"今天路过一家旧书店，闻到了阳光的味道。"}'
-
-# 管理员登录
-curl -X POST http://localhost:8080/api/admin/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
-
-# 管理员删除（将 TOKEN 换成登录返回的 token）
-curl -X DELETE http://localhost:8080/api/admin/fragments/1 \
-  -H "X-Admin-Token: TOKEN"
-```
-
-## 默认配置
-
-| 配置 | 默认值 | 说明 |
-| --- | --- | --- |
-| 服务端口 | `8080` | `server.port` |
-| MySQL 地址 | `localhost:3306/story_sliver` | `spring.datasource.url` |
-| 数据库账号 | `root / root` | `spring.datasource` |
-| 管理员账号 | `admin / admin123` | `app.admin` |
-
-## 注意事项
-
-- 评论功能暂未开放，按需求后续再加 `comment` 表与接口即可。
-- 管理员 token 目前存内存，重启服务后失效；后续可替换为 JWT / Redis。
-- 删除为软删除（`status = 1`），列表查询只返回 `status = 0` 的数据。
+1. 数据库：执行 `src/main/resources/db/init.sql` 建库（**仅开发用**；线上严禁执行，表结构变更一律用增量脚本）
+2. 增量脚本：`db/upgrade_v1.2.sql`（昵称唯一 / 敏感词 / 公告）、`db/upgrade_v2.0.sql`（评论 / 评论举报）
+3. 配置：修改 `src/main/resources/application.properties` 的数据库账号/密码（生产用 systemd 环境变量覆盖）
+4. 运行：IDEA 运行 `com.storysliver.StoryApplication`，或 `mvn spring-boot:run`
+5. 访问 http://localhost:8080（前端另跑 `fragment-story-frontend`，`npm run dev` 后 5173 代理到 8080）
 
 ## 目录结构
 
 ```text
-fragment-story
-├── pom.xml
-└── src/main
-    ├── java/com/storysliver
-    │   ├── StoryApplication.java        # 启动类
-    │   ├── common/                      # 统一响应、异常处理
-    │   ├── config/                      # 跨域、拦截器配置
-    │   ├── controller/                  # 接口层
-    │   ├── service/                     # 业务层
-    │   ├── mapper/                      # MyBatis Mapper 接口
-    │   ├── entity/                      # 实体类
-    │   ├── dto/                         # 请求/响应对象
-    │   └── admin/                       # 管理员登录与鉴权
-    └── resources
-        ├── application.yml              # 配置文件
-        ├── mapper/                      # MyBatis XML
-        └── db/init.sql                  # 数据库初始化脚本
+src/main/java/com/storysliver
+├── auth/       # JWT、验证码、注册/发布/评论限流、UserContext、@RequireRole、登录拦截器
+├── common/     # ResultCode、BusinessException、GlobalExceptionHandler
+├── config/     # WebConfig（CORS/拦截器）、BeanConfig（BCrypt）、ConfigSeedRunner（初始管理员密码）
+├── controller/ # Auth / User / Fragment / Comment / Announcement / Admin / AdminAnnouncement / AdminSensitiveWord / AdminComment
+├── mapper/     # MyBatis @Mapper 接口（注解 SQL；动态 SQL 在 resources/com/storysliver/mapper/*.xml）
+├── pojo/       # 实体 + 请求/响应对象（Auth/ Fragment/ Admin 按业务分包；Result、PageBean 在根包）
+├── service/    # 业务接口 + impl（@Service + @Autowired 字段注入）
+└── resources/
+    ├── application.properties
+    ├── db/        # init.sql（开发）+ upgrade_v1.2.sql / upgrade_v2.0.sql（增量）
+    ├── static/    # 前端构建产物（mvn package 时打入 jar，单端口托管）
+    └── com/storysliver/mapper/  # 动态 SQL XML
 ```
+
+## 当前功能
+
+- 注册/登录：算术验证码（会话绑定、一次性）+ IP 限流；JWT 30 天；封禁体系（登录拦截 + 旧 token 失效）
+- 角色：普通用户 / 管理员 / 站长（站长 = 第一个用特殊密码注册的管理员）
+- 碎片：发布（5 分钟/条、1000 字封顶、可匿名）→ 待审核 → 管理员上墙；点赞/取消、隐藏/取消、硬删除
+- 评论（V2.0）：免审核发布（1 分钟 10 条、100 字封顶）、分页列表（时间正序）、删自己的（硬删除）、举报（理由必填、防重复）
+- 评论举报管理（V2.0）：待处理列表；不下架 / 下架 / 下架并封禁评论用户
+- 用户：头像上传与审核、昵称唯一 + 敏感词校验、修改密码（旧 token 失效）
+- 公告（V1.2）：站长在线编辑、上架/下架、进站弹窗 + 顶部滚动条
+- 敏感词库（V1.2）：站长维护，注册 / 改昵称即时拦截
+
+## 测试
+
+```bash
+mvn test -f fragment-story/pom.xml
+```
+
+> 注意：本机 Maven 命令行编译依赖 pom.xml 里显式声明的 Lombok 注解处理器路径（annotationProcessorPaths），
+> 缺了会报大量「找不到 getter/构造器」错误——不要删掉那段配置。
